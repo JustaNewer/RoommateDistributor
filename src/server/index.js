@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
+const avatarRoutes = require('./routes/avatar');
 
 const app = express();
 
@@ -10,6 +11,7 @@ app.use(express.json());  // 解析JSON请求体
 
 // 路由
 app.use('/api/auth', authRoutes);
+app.use('/api/avatar', avatarRoutes);
 
 // 错误处理中间件
 app.use((err, req, res, next) => {

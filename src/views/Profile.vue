@@ -144,15 +144,44 @@ export default {
     triggerFileInput() {
       this.$refs.fileInput.click();
     },
-    handleAvatarChange(event) {
+    async fetchAvatar() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/avatar/${userId}`);
+        const data = await response.json();
+        
+        if (response.ok && data.data.avatarUrl) {
+          this.avatarUrl = data.data.avatarUrl;
+        }
+      } catch (error) {
+        console.error('获取头像失败:', error);
+      }
+    },
+    async handleAvatarChange(event) {
       const file = event.target.files[0];
       if (file) {
-        // TODO: 实现头像上传逻辑
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.avatarUrl = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        try {
+          const formData = new FormData();
+          formData.append('avatar', file);
+          formData.append('userId', localStorage.getItem('userId'));
+
+          const response = await fetch('http://localhost:3000/api/avatar/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            this.avatarUrl = data.data.avatarUrl;
+            alert('头像上传成功');
+          } else {
+            alert(data.message || '头像上传失败');
+          }
+        } catch (error) {
+          console.error('上传头像错误:', error);
+          alert('网络错误，请稍后重试');
+        }
       }
     },
     async handlePasswordChange() {
@@ -205,6 +234,9 @@ export default {
       // TODO: 实现 AI 生成头像逻辑
       console.log('生成 AI 头像');
     }
+  },
+  mounted() {
+    this.fetchAvatar();
   }
 }
 </script>
