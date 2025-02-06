@@ -98,4 +98,51 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// 修改密码
+router.post('/change-password', async (req, res) => {
+    try {
+        const { userId, oldPassword, newPassword } = req.body;
+
+        // 验证参数
+        if (!userId || !oldPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: '缺少必要参数'
+            });
+        }
+
+        // 验证旧密码是否正确
+        const hashedOldPassword = hashPassword(oldPassword);
+        const [users] = await db.execute(
+            'SELECT user_id FROM Users WHERE user_id = ? AND password = ?',
+            [userId, hashedOldPassword]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({
+                success: false,
+                message: '当前密码错误'
+            });
+        }
+
+        // 更新新密码
+        const hashedNewPassword = hashPassword(newPassword);
+        await db.execute(
+            'UPDATE Users SET password = ? WHERE user_id = ?',
+            [hashedNewPassword, userId]
+        );
+
+        res.json({
+            success: true,
+            message: '密码修改成功'
+        });
+    } catch (error) {
+        console.error('修改密码错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
 module.exports = router; 

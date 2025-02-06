@@ -18,9 +18,14 @@
               <span v-if="!avatarUrl" class="avatar-text">{{ username.charAt(0).toUpperCase() }}</span>
               <img v-else :src="avatarUrl" alt="用户头像" />
             </div>
-            <button class="change-avatar-btn" @click="triggerFileInput">
-              更换头像
-            </button>
+            <div class="avatar-buttons">
+              <button class="change-avatar-btn" @click="triggerFileInput">
+                更换头像
+              </button>
+              <button class="ai-avatar-btn" @click="generateAIAvatar">
+                AI生成头像
+              </button>
+            </div>
             <input
               type="file"
               ref="fileInput"
@@ -44,25 +49,52 @@
         <div class="password-section">
           <h2>修改密码</h2>
           <div class="form-group">
-            <input
-              type="password"
-              v-model="passwordForm.oldPassword"
-              placeholder="当前密码"
-            />
+            <div class="password-input-wrapper">
+              <input
+                :type="passwordVisibility.oldPassword ? 'text' : 'password'"
+                v-model="passwordForm.oldPassword"
+                placeholder="当前密码"
+              />
+              <button 
+                class="toggle-password-btn"
+                @click="togglePasswordVisibility('oldPassword')"
+                type="button"
+              >
+                {{ passwordVisibility.oldPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
-            <input
-              type="password"
-              v-model="passwordForm.newPassword"
-              placeholder="新密码"
-            />
+            <div class="password-input-wrapper">
+              <input
+                :type="passwordVisibility.newPassword ? 'text' : 'password'"
+                v-model="passwordForm.newPassword"
+                placeholder="新密码"
+              />
+              <button 
+                class="toggle-password-btn"
+                @click="togglePasswordVisibility('newPassword')"
+                type="button"
+              >
+                {{ passwordVisibility.newPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
-            <input
-              type="password"
-              v-model="passwordForm.confirmPassword"
-              placeholder="确认新密码"
-            />
+            <div class="password-input-wrapper">
+              <input
+                :type="passwordVisibility.confirmPassword ? 'text' : 'password'"
+                v-model="passwordForm.confirmPassword"
+                placeholder="确认新密码"
+              />
+              <button 
+                class="toggle-password-btn"
+                @click="togglePasswordVisibility('confirmPassword')"
+                type="button"
+              >
+                {{ passwordVisibility.confirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <button class="submit-btn" @click="handlePasswordChange">
             确认修改
@@ -97,10 +129,18 @@ export default {
         oldPassword: '',
         newPassword: '',
         confirmPassword: ''
+      },
+      passwordVisibility: {
+        oldPassword: false,
+        newPassword: false,
+        confirmPassword: false
       }
     }
   },
   methods: {
+    togglePasswordVisibility(field) {
+      this.passwordVisibility[field] = !this.passwordVisibility[field];
+    },
     triggerFileInput() {
       this.$refs.fileInput.click();
     },
@@ -115,8 +155,8 @@ export default {
         reader.readAsDataURL(file);
       }
     },
-    handlePasswordChange() {
-      // TODO: 实现密码修改逻辑
+    async handlePasswordChange() {
+      // 表单验证
       if (!this.passwordForm.oldPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
         alert('请填写所有密码字段');
         return;
@@ -125,11 +165,45 @@ export default {
         alert('两次输入的新密码不一致');
         return;
       }
-      console.log('修改密码', this.passwordForm);
+
+      try {
+        const response = await fetch('http://localhost:3000/api/auth/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: localStorage.getItem('userId'),
+            oldPassword: this.passwordForm.oldPassword,
+            newPassword: this.passwordForm.newPassword
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('密码修改成功');
+          // 清空表单
+          this.passwordForm = {
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          };
+        } else {
+          alert(data.message || '密码修改失败');
+        }
+      } catch (error) {
+        console.error('修改密码错误:', error);
+        alert('网络错误，请稍后重试');
+      }
     },
     startPersonalityTest() {
       // TODO: 跳转到性格测试页面
       this.$router.push('/personality-test');
+    },
+    generateAIAvatar() {
+      // TODO: 实现 AI 生成头像逻辑
+      console.log('生成 AI 头像');
     }
   }
 }
@@ -158,17 +232,22 @@ export default {
 
 .back-btn {
   background: none;
-  border: none;
+  border: 2px solid #4CAF50;
   color: #4CAF50;
   cursor: pointer;
   font-size: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .back-btn:hover {
   background-color: rgba(76, 175, 80, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
 }
 
 .profile-content {
@@ -217,6 +296,12 @@ export default {
   font-weight: bold;
 }
 
+.avatar-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
 .change-avatar-btn {
   background-color: #4CAF50;
   color: white;
@@ -228,6 +313,20 @@ export default {
 }
 
 .change-avatar-btn:hover {
+  opacity: 0.9;
+}
+
+.ai-avatar-btn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.ai-avatar-btn:hover {
   opacity: 0.9;
 }
 
@@ -313,5 +412,34 @@ input::placeholder {
 
 .test-icon {
   font-size: 1.2rem;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.2rem;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.toggle-password-btn:hover {
+  color: #4CAF50;
+}
+
+.password-input-wrapper input {
+  padding-right: 40px;
 }
 </style> 
