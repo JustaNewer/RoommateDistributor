@@ -132,8 +132,9 @@ export default {
           // 保存用户信息
           localStorage.setItem('userId', data.user.id);
           localStorage.setItem('username', data.user.username);
-          // 跳转到主页
-          this.$router.push('/home');
+          // 跳转到之前想要访问的页面，如果没有则跳转到主页
+          const redirectPath = this.$route.query.redirect || '/home';
+          this.$router.push(redirectPath);
         } else {
           this.loginMessage = {
             content: data.message || '登录失败',

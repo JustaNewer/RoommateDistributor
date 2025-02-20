@@ -115,16 +115,28 @@
         </div>
       </div>
     </main>
+
+    <AIAvatarModal
+      v-if="showAIModal"
+      @close="showAIModal = false"
+      @avatarGenerated="handleAIAvatarGenerated"
+    />
   </div>
 </template>
 
 <script>
+import AIAvatarModal from '../components/AIAvatarModal.vue';
+
 export default {
   name: 'ProfilePage',
+  components: {
+    AIAvatarModal
+  },
   data() {
     return {
       username: localStorage.getItem('username') || '用户',
       avatarUrl: null,
+      showAIModal: false,
       passwordForm: {
         oldPassword: '',
         newPassword: '',
@@ -231,8 +243,10 @@ export default {
       this.$router.push('/personality-test');
     },
     generateAIAvatar() {
-      // TODO: 实现 AI 生成头像逻辑
-      console.log('生成 AI 头像');
+      this.showAIModal = true;
+    },
+    handleAIAvatarGenerated(avatarUrl) {
+      this.avatarUrl = avatarUrl;
     }
   },
   mounted() {
