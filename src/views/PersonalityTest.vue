@@ -149,7 +149,8 @@ export default {
           },
           body: JSON.stringify({
             message: messageToSend,
-            userId: localStorage.getItem('userId') || 'default_user'
+            userId: localStorage.getItem('userId') || 'default_user',
+            threadId: this.chatId
           })
         });
 
@@ -177,6 +178,7 @@ export default {
         // 保存会话ID（如果存在）
         if (data.threadId) {
           this.chatId = data.threadId;
+          console.log('Updated threadId:', this.chatId);
         }
 
         // 添加机器人消息

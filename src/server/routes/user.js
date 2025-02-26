@@ -163,11 +163,11 @@ router.delete('/chat/messages/:userId', async (req, res) => {
 // 代理转发百度 API 请求
 router.post('/chat/proxy', async (req, res) => {
     try {
-        const { message, userId } = req.body;
+        const { message, userId, threadId } = req.body;  // 从请求中获取 threadId
         const appId = 'XWahSwAVRT6xrylMQ2jNDqh3khsbVzdE';
         const secretKey = 'xk2PgqDNrIUthoQrQ8zaVUXyqhRsw9Zu';
 
-        console.log('Received request:', { message, userId });
+        console.log('Received request:', { message, userId, threadId });
 
         // 构建请求体，严格按照API文档格式
         const requestBody = {
@@ -183,6 +183,11 @@ router.post('/chat/proxy', async (req, res) => {
             from: "openapi",
             openId: userId || 'default_user'
         };
+
+        // 如果有 threadId，添加到请求体中
+        if (threadId) {
+            requestBody.threadId = threadId;
+        }
 
         // 打印实际发送的请求体，用于调试
         console.log('Actual request body:', JSON.stringify(requestBody));
