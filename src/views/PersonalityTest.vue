@@ -76,12 +76,22 @@ export default {
       
       // 确保text是字符串
       if (typeof text !== 'string') {
-        console.warn('Message is not a string:', text);
-        return String(text);
+        return text;
       }
-      
-      // 将 #tag 转换为带样式的标签
-      return text.replace(/#(\w+)/g, '<span class="tag">#$1</span>');
+
+      // 检查是否是问卷结束消息并包含标签
+      if (text.includes('问卷结束') && text.includes('#')) {
+        // 提取所有标签
+        const tags = text.match(/#[^ ]+/g);
+        if (tags) {
+          // 移除#符号并保存标签
+          this.extractedTags = tags.map(tag => tag.substring(1));
+          console.log('提取到的标签:', this.extractedTags);
+          this.saveTags();
+        }
+      }
+
+      return text;
     },
     formatTime(timestamp) {
       return new Date(timestamp).toLocaleTimeString('zh-CN', {
@@ -213,14 +223,6 @@ export default {
           console.error('保存机器人消息失败:', error);
         }
 
-        // 检查是否包含标签
-        const tags = botResponse.match(/#(\w+)/g);
-        if (tags) {
-          this.extractedTags = tags.map(tag => tag.substring(1));
-          this.testCompleted = true;
-          await this.saveTags();
-        }
-
         // 自动滚动到底部
         this.$nextTick(() => {
           this.scrollToBottom();
@@ -236,27 +238,6 @@ export default {
         });
       } finally {
         this.isWaitingForBot = false;
-      }
-    },
-    async saveTags() {
-      try {
-        const response = await fetch('http://localhost:3000/api/user/save-tags', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: localStorage.getItem('userId'),
-            tags: this.extractedTags
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('保存标签失败');
-        }
-      } catch (error) {
-        console.error('保存标签错误:', error);
-        alert('保存标签失败，请重试');
       }
     },
     scrollToBottom() {
@@ -310,6 +291,38 @@ export default {
     beforeDestroy() {
       // 组件销毁前清理聊天记录
       this.clearChatHistory();
+    },
+    async saveTags() {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (!userId || !this.extractedTags.length) {
+          console.error('无法保存标签：缺少用户ID或标签');
+          return;
+        }
+
+        console.log('正在保存标签:', { userId, tags: this.extractedTags });
+
+        const response = await fetch('http://localhost:3000/api/user/save-tags', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            tags: this.extractedTags
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          console.log('标签保存成功:', data);
+          this.testCompleted = true;
+        } else {
+          console.error('标签保存失败:', data.message);
+        }
+      } catch (error) {
+        console.error('保存标签时出错:', error);
+      }
     }
   },
   async mounted() {

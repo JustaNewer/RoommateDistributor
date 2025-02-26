@@ -15,24 +15,35 @@ router.post('/save-tags', async (req, res) => {
             });
         }
 
-        // 将标签数组转换为逗号分隔的字符串
-        const tagsString = tags.join(',');
+        // 将标签数组转换为空格分隔的字符串
+        const tagsString = tags.join(' ');
+
+        console.log('正在保存标签:', { userId, tags, tagsString });
 
         // 更新用户标签
-        await db.execute(
+        const [result] = await db.execute(
             'UPDATE Users SET user_tags = ? WHERE user_id = ?',
             [tagsString, userId]
         );
 
+        if (result.affectedRows === 0) {
+            throw new Error('未找到用户或标签未更新');
+        }
+
+        console.log('标签保存成功:', { userId, tagsString });
+
         res.json({
             success: true,
-            message: '标签保存成功'
+            message: '标签保存成功',
+            data: {
+                tags: tagsString
+            }
         });
     } catch (error) {
         console.error('保存标签错误:', error);
         res.status(500).json({
             success: false,
-            message: '服务器错误'
+            message: error.message || '服务器错误'
         });
     }
 });
