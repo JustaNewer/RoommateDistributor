@@ -36,13 +36,13 @@
         <input 
           type="text" 
           v-model="userInput"
-          @keyup.enter="sendMessage"
+          @keyup.enter="sendMessage(userInput)"
           placeholder="输入你的回答..."
           :disabled="isWaitingForBot || showOptions"
         >
         <button 
           class="send-btn" 
-          @click="sendMessage"
+          @click="sendMessage(userInput)"
           :disabled="isWaitingForBot || !userInput.trim() || showOptions"
         >
           发送
@@ -111,7 +111,7 @@ export default {
 
       // 保存用户消息到数据库
       try {
-        await fetch('http://localhost:3000/api/user/chat/messages', {
+        const saveResponse = await fetch('http://localhost:3000/api/user/chat/messages', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -119,9 +119,16 @@ export default {
           body: JSON.stringify({
             userId: localStorage.getItem('userId'),
             message: messageToSend,
-            messageType: 'text'
+            messageType: 'text',
+            isBot: false
           })
         });
+
+        const saveData = await saveResponse.json();
+        if (saveData.success) {
+          userMessage.messageId = saveData.data.messageId;
+          userMessage.timestamp = new Date(saveData.data.timestamp);
+        }
       } catch (error) {
         console.error('保存用户消息失败:', error);
       }
@@ -182,7 +189,7 @@ export default {
 
         // 保存机器人消息到数据库
         try {
-          await fetch('http://localhost:3000/api/user/chat/messages', {
+          const saveBotResponse = await fetch('http://localhost:3000/api/user/chat/messages', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -194,6 +201,12 @@ export default {
               isBot: true
             })
           });
+
+          const saveBotData = await saveBotResponse.json();
+          if (saveBotData.success) {
+            botMessage.messageId = saveBotData.data.messageId;
+            botMessage.timestamp = new Date(saveBotData.data.timestamp);
+          }
         } catch (error) {
           console.error('保存机器人消息失败:', error);
         }

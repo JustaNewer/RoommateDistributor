@@ -84,14 +84,26 @@ router.post('/chat/messages', async (req, res) => {
         }
 
         // 插入消息记录
-        await db.execute(
-            'INSERT INTO chat_messages (user_id, bot_id, message, message_type) VALUES (?, ?, ?, ?)',
-            [userId, 1, message, messageType] // bot_id 设为1，表示性格测试智能体
+        const [result] = await db.execute(
+            `INSERT INTO chat_messages 
+            (user_id, bot_id, message, message_type, status) 
+            VALUES (?, ?, ?, ?, ?)`,
+            [
+                userId,
+                isBot ? 1 : 0,  // bot_id: 1 表示性格测试智能体，0 表示用户消息
+                message,
+                messageType,
+                'sent'  // 初始状态为已发送
+            ]
         );
 
         res.json({
             success: true,
-            message: '消息保存成功'
+            message: '消息保存成功',
+            data: {
+                messageId: result.insertId,
+                timestamp: new Date()
+            }
         });
     } catch (error) {
         console.error('保存消息错误:', error);
@@ -157,7 +169,7 @@ router.post('/chat/proxy', async (req, res) => {
 
         console.log('Received request:', { message, userId });
 
-        // 构建请求体，完全按照文档格式
+        // 构建请求体，严格按照API文档格式
         const requestBody = {
             message: {
                 content: {
@@ -167,88 +179,90 @@ router.post('/chat/proxy', async (req, res) => {
                     }
                 }
             },
-            source: "XWahSwAVRT6xrylMQ2jNDqh3khsbVzdE",
+            source: appId,
             from: "openapi",
             openId: userId || 'default_user'
         };
 
-        // 如果有会话ID，添加到请求中
-        if (req.body.threadId) {
-            requestBody.threadId = req.body.threadId;
-        }
+        // 打印实际发送的请求体，用于调试
+        console.log('Actual request body:', JSON.stringify(requestBody));
 
-        const apiUrl = 'https://agentapi.baidu.com/assistant/getAnswer';
+        const apiUrl = `https://agentapi.baidu.com/assistant/getAnswer?appId=${appId}&secretKey=${secretKey}`;
 
-        console.log('Sending request to Baidu API:', {
-            url: `${apiUrl}?appId=${appId}&secretKey=${secretKey}`,
-            headers: {
-                'Content-Type': 'application/json'
-            },
+        console.log('Step 1 - Sending request to API:', {
+            url: apiUrl,
             body: JSON.stringify(requestBody, null, 2)
         });
 
-        const response = await fetch(
-            `${apiUrl}?appId=${appId}&secretKey=${secretKey}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            }
-        );
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const rawResponse = await response.text();
+        console.log('Step 2 - Raw API Response:', rawResponse);
 
         if (!response.ok) {
-            const errorText = await response.text();
             console.error('API Error Response:', {
                 status: response.status,
                 statusText: response.statusText,
-                body: errorText
+                body: rawResponse
             });
-            throw new Error(`API请求失败: ${response.status} ${response.statusText}\n${errorText}`);
+            throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
         }
-
-        const responseText = await response.text();
-        console.log('Raw API Response:', responseText);
 
         let data;
         try {
-            data = JSON.parse(responseText);
-            console.log('Parsed API Response:', JSON.stringify(data, null, 2));
+            data = JSON.parse(rawResponse);
+            console.log('Step 3 - Parsed API Response:', JSON.stringify(data, null, 2));
         } catch (parseError) {
-            console.error('Failed to parse API response:', parseError);
-            throw new Error(`无法解析API响应: ${responseText}`);
+            console.error('JSON解析错误:', parseError);
+            throw new Error('无法解析API响应JSON');
         }
 
-        // 检查响应状态
+        // 检查API响应状态
         if (data.status !== 0) {
-            throw new Error(`API错误: ${data.message}`);
+            throw new Error(data.message || 'API调用失败');
         }
 
-        // 从响应中提取文本内容
-        let botResponse = '';
-
-        if (data.data && Array.isArray(data.data.content)) {
-            const textContent = data.data.content.find(item =>
-                item.dataType === 'text' || item.dataType === 'markdown'
-            );
-            if (textContent && textContent.data && textContent.data.text) {
-                botResponse = textContent.data.text;
+        // 提取回复内容
+        let botResponse = null;
+        if (data.data && data.data.content && Array.isArray(data.data.content)) {
+            const textContent = data.data.content.find(item => item.dataType === 'txt');
+            if (textContent && textContent.data) {
+                botResponse = textContent.data;
             }
         }
 
         if (!botResponse) {
-            console.error('Could not find response in data:', JSON.stringify(data, null, 2));
+            console.error('无法找到有效的回复内容:', data);
             throw new Error('无法从API响应中提取文本内容');
         }
 
-        console.log('Final bot response:', botResponse);
+        console.log('Step 4 - Extracted response:', botResponse);
 
+        // 保存机器人的回复到数据库
+        console.log('Step 5 - Saving bot response to database');
+        const [saveResult] = await db.execute(
+            `INSERT INTO chat_messages 
+            (user_id, bot_id, message, message_type, status) 
+            VALUES (?, ?, ?, ?, ?)`,
+            [userId, 1, botResponse, 'text', 'sent']
+        );
+
+        console.log('Step 6 - Sending final response to client');
         res.json({
             success: true,
             message: botResponse,
-            threadId: data.data.threadId
+            threadId: data.data?.threadId,
+            messageId: saveResult.insertId,
+            timestamp: new Date()
         });
+
     } catch (error) {
         console.error('代理请求错误:', error);
         console.error('Error stack:', error.stack);
