@@ -6,7 +6,8 @@
         <div class="user-info">
           <div class="avatar-container">
             <div class="avatar" @click="toggleDropdown">
-              <span class="avatar-text">{{ username.charAt(0).toUpperCase() }}</span>
+              <img v-if="avatarUrl" :src="avatarUrl" alt="用户头像" class="avatar-img">
+              <span v-else class="avatar-text">{{ username.charAt(0).toUpperCase() }}</span>
             </div>
             <!-- 下拉菜单 -->
             <div class="dropdown-menu" v-show="isDropdownVisible">
@@ -26,9 +27,56 @@
     </header>
     
     <main class="main-content">
-      <div class="welcome-message">
-        <h2>欢迎使用智能舍友分配系统</h2>
-        <p>这里是系统主页，更多功能开发中...</p>
+      <div class="search-section">
+        <div class="search-container">
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="搜索宿舍..."
+            v-model="searchQuery"
+          >
+          <button class="search-btn">
+            🔍
+          </button>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="action-btn create-room-btn" @click="showCreateRoomModal = true">
+          <span class="btn-icon">+</span>
+          创建宿舍
+        </button>
+        <button class="action-btn view-rooms-btn" @click="showMyRooms = true">
+          <span class="btn-icon">📋</span>
+          我的宿舍
+        </button>
+      </div>
+
+      <!-- 创建宿舍的模态窗口 -->
+      <div class="modal-overlay" v-if="showCreateRoomModal" @click="showCreateRoomModal = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>创建新宿舍</h3>
+            <button class="close-btn" @click="showCreateRoomModal = false">×</button>
+          </div>
+          <div class="modal-body">
+            <!-- 表单将在后续实现 -->
+            <p class="placeholder-text">表单开发中...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 查看宿舍的模态窗口 -->
+      <div class="modal-overlay" v-if="showMyRooms" @click="showMyRooms = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>我的宿舍</h3>
+            <button class="close-btn" @click="showMyRooms = false">×</button>
+          </div>
+          <div class="modal-body">
+            <p class="placeholder-text">宿舍列表开发中...</p>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -40,7 +88,11 @@ export default {
   data() {
     return {
       username: localStorage.getItem('username') || '用户',
-      isDropdownVisible: false
+      isDropdownVisible: false,
+      showCreateRoomModal: false,
+      showMyRooms: false,
+      searchQuery: '',
+      avatarUrl: null
     }
   },
   methods: {
@@ -48,7 +100,6 @@ export default {
       this.isDropdownVisible = !this.isDropdownVisible;
     },
     handleProfile() {
-      // 跳转到个人资料页面
       this.$router.push('/profile');
       this.isDropdownVisible = false;
     },
@@ -56,9 +107,25 @@ export default {
       localStorage.removeItem('username');
       localStorage.removeItem('userId');
       this.$router.push('/login');
+    },
+    async fetchAvatar() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/avatar/${userId}`);
+        const data = await response.json();
+        
+        if (response.ok && data.data.avatarUrl) {
+          this.avatarUrl = data.data.avatarUrl;
+        }
+      } catch (error) {
+        console.error('获取头像失败:', error);
+      }
     }
   },
-  mounted() {
+  async mounted() {
+    // 获取用户头像
+    await this.fetchAvatar();
+    
     // 点击页面其他地方时关闭下拉菜单
     document.addEventListener('click', (e) => {
       const avatarContainer = document.querySelector('.avatar-container');
@@ -124,24 +191,105 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 80px); /* 减去header高度 */
 }
 
-.welcome-message {
+.search-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 4rem;
+  margin-bottom: 2rem;
+}
+
+.search-container {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 1rem 1.5rem;
   background-color: #2a2a2a;
-  padding: 2rem;
-  border-radius: 8px;
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.welcome-message h2 {
-  color: #4CAF50;
-  margin-bottom: 1rem;
-}
-
-.welcome-message p {
-  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  color: #ffffff;
   font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+  background-color: #333;
+}
+
+.search-btn {
+  padding: 1rem 1.5rem;
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.2rem;
+}
+
+.search-btn:hover {
+  background-color: #3a3a3a;
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.action-btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-room-btn {
+  background-color: #4CAF50;
+}
+
+.view-rooms-btn {
+  background-color: #2196F3;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.create-room-btn:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.view-rooms-btn:hover {
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.btn-icon {
+  font-size: 1.2rem;
 }
 
 .avatar-container {
@@ -199,5 +347,71 @@ export default {
   color: white;
   font-size: 1.2rem;
   font-weight: bold;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  color: #4CAF50;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.placeholder-text {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 </style> 
