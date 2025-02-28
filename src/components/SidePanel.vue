@@ -10,8 +10,10 @@
       @before-leave="beforeLeave"
       @leave="leave"
     >
-      <div v-if="modelValue" class="panel-content" ref="panel">
-        <slot></slot>
+      <div v-if="modelValue" class="panel-overlay" @click="handleOverlayClick">
+        <div class="panel-content" ref="panel" @click.stop>
+          <slot></slot>
+        </div>
       </div>
     </Transition>
   </div>
@@ -28,20 +30,19 @@ export default {
   },
   methods: {
     beforeEnter(el) {
-      el.style.height = '0';
       el.style.opacity = '0';
     },
     enter(el) {
-      const height = el.scrollHeight;
-      el.style.height = height + 'px';
       el.style.opacity = '1';
     },
     beforeLeave(el) {
-      el.style.height = el.scrollHeight + 'px';
+      el.style.opacity = '1';
     },
     leave(el) {
-      el.style.height = '0';
       el.style.opacity = '0';
+    },
+    handleOverlayClick() {
+      this.$emit('update:modelValue', false);
     }
   }
 }
@@ -59,16 +60,25 @@ export default {
   width: 100%;
 }
 
-.panel-content {
+.panel-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding-top: 180px;
+}
+
+.panel-content {
   background-color: #2a2a2a;
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
@@ -80,6 +90,13 @@ export default {
 .panel-enter-from,
 .panel-leave-to {
   opacity: 0;
-  transform: translate(-50%, calc(-50% - 20px));
+}
+
+.panel-enter-from .panel-content {
+  transform: translateY(-20px);
+}
+
+.panel-leave-to .panel-content {
+  transform: translateY(-20px);
 }
 </style> 

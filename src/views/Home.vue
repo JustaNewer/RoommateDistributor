@@ -57,8 +57,70 @@
                 <button class="close-btn" @click="showCreateRoomModal = false">×</button>
               </div>
               <div class="form-body">
-                <!-- 表单将在后续实现 -->
-                <p class="placeholder-text">表单开发中...</p>
+                <div class="form-group">
+                  <label>宿舍名称</label>
+                  <input 
+                    type="text" 
+                    v-model="dormForm.dormName" 
+                    placeholder="请输入宿舍名称"
+                    class="form-input"
+                  >
+                </div>
+
+                <div class="form-group">
+                  <label>所属学校</label>
+                  <input 
+                    type="text" 
+                    v-model="dormForm.schoolName" 
+                    placeholder="请输入学校名称"
+                    class="form-input"
+                  >
+                </div>
+
+                <div class="form-group">
+                  <label>宿舍容量</label>
+                  <div class="radio-group">
+                    <label class="radio-label" v-for="size in [2, 4, 6, 8]" :key="size">
+                      <input 
+                        type="radio" 
+                        :value="size" 
+                        v-model="dormForm.space"
+                        name="dormSize"
+                      >
+                      {{ size }}人间
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group half">
+                    <label>楼层数</label>
+                    <input 
+                      type="number" 
+                      v-model="dormForm.floorCount" 
+                      min="1"
+                      placeholder="请输入楼层数"
+                      class="form-input"
+                    >
+                  </div>
+
+                  <div class="form-group half">
+                    <label>每层房间数</label>
+                    <input 
+                      type="number" 
+                      v-model="dormForm.roomsPerFloor" 
+                      min="1"
+                      placeholder="请输入每层房间数"
+                      class="form-input"
+                    >
+                  </div>
+                </div>
+
+                <div class="form-footer">
+                  <button class="submit-btn" @click="handleCreateDorm">
+                    创建宿舍
+                  </button>
+                </div>
               </div>
             </div>
           </SidePanel>
@@ -103,7 +165,14 @@ export default {
       showCreateRoomModal: false,
       showMyRooms: false,
       searchQuery: '',
-      avatarUrl: null
+      avatarUrl: null,
+      dormForm: {
+        dormName: '',
+        schoolName: '',
+        space: 2,
+        floorCount: 1,
+        roomsPerFloor: 1
+      }
     }
   },
   methods: {
@@ -134,6 +203,10 @@ export default {
     },
     toggleCreateRoom() {
       this.showCreateRoomModal = !this.showCreateRoomModal;
+    },
+    handleCreateDorm() {
+      // 实现创建宿舍的逻辑
+      console.log('创建宿舍:', this.dormForm);
     }
   },
   async mounted() {
@@ -444,32 +517,163 @@ export default {
 }
 
 .create-room-form {
-  padding: 2rem;
+  padding: 0;
   background-color: #2a2a2a;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   width: 500px;
   max-height: calc(90vh - 200px);
-  overflow-y: auto;
+  overflow: hidden;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-header {
+  position: sticky;
+  top: 0;
+  background-color: #2a2a2a;
+  padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
   border-bottom: 1px solid #3a3a3a;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .form-header h3 {
   color: #4CAF50;
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
+  font-weight: 500;
 }
 
 .form-body {
-  padding: 1rem;
-  min-height: 200px;
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.form-group {
+  margin-bottom: 1.8rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: #ffffff;
+  font-weight: 400;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background-color: #333;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  background-color: #383838;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
+}
+
+.form-input::placeholder {
+  color: #666;
+}
+
+.radio-group {
+  display: flex;
+  gap: 2rem;
+  margin-top: 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #4CAF50;
+}
+
+.form-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.8rem;
+}
+
+.form-group.half {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-footer {
+  margin-top: 2.5rem;
+  text-align: right;
+  padding: 0 2rem 2rem;
+  background-color: #2a2a2a;
+}
+
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.8rem 2.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.25);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.close-btn:hover {
+  color: #fff;
+  background-color: #333;
 }
 </style> 
