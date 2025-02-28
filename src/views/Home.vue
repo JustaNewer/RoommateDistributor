@@ -42,27 +42,33 @@
       </div>
 
       <div class="action-buttons">
-        <button class="action-btn create-room-btn" @click="showCreateRoomModal = true">
-          <span class="btn-icon">+</span>
-          创建宿舍
-        </button>
-        <button class="action-btn view-rooms-btn" @click="showMyRooms = true">
-          <span class="btn-icon">📋</span>
-          我的宿舍
-        </button>
-      </div>
+        <div class="button-wrapper">
+          <SidePanel v-model="showCreateRoomModal">
+            <template #trigger>
+              <button class="action-btn create-room-btn" @click="toggleCreateRoom">
+                <span class="btn-icon">+</span>
+                创建宿舍
+              </button>
+            </template>
+            
+            <div class="create-room-form">
+              <div class="form-header">
+                <h3>创建新宿舍</h3>
+                <button class="close-btn" @click="showCreateRoomModal = false">×</button>
+              </div>
+              <div class="form-body">
+                <!-- 表单将在后续实现 -->
+                <p class="placeholder-text">表单开发中...</p>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
 
-      <!-- 创建宿舍的模态窗口 -->
-      <div class="modal-overlay" v-if="showCreateRoomModal" @click="showCreateRoomModal = false">
-        <div class="modal-content" @click.stop>
-          <div class="modal-header">
-            <h3>创建新宿舍</h3>
-            <button class="close-btn" @click="showCreateRoomModal = false">×</button>
-          </div>
-          <div class="modal-body">
-            <!-- 表单将在后续实现 -->
-            <p class="placeholder-text">表单开发中...</p>
-          </div>
+        <div class="button-wrapper">
+          <button class="action-btn view-rooms-btn" @click="showMyRooms = true">
+            <span class="btn-icon">📋</span>
+            我的宿舍
+          </button>
         </div>
       </div>
 
@@ -83,8 +89,13 @@
 </template>
 
 <script>
+import SidePanel from '../components/SidePanel.vue'
+
 export default {
   name: 'HomePage',
+  components: {
+    SidePanel
+  },
   data() {
     return {
       username: localStorage.getItem('username') || '用户',
@@ -120,6 +131,9 @@ export default {
       } catch (error) {
         console.error('获取头像失败:', error);
       }
+    },
+    toggleCreateRoom() {
+      this.showCreateRoomModal = !this.showCreateRoomModal;
     }
   },
   async mounted() {
@@ -194,14 +208,16 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: calc(100vh - 80px); /* 减去header高度 */
+  min-height: calc(100vh - 80px);
+  position: relative;
+  overflow: hidden;
 }
 
 .search-section {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: 4rem;
+  margin-top: 2rem;
   margin-bottom: 2rem;
 }
 
@@ -250,11 +266,21 @@ export default {
 
 .action-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 2rem;
   margin-top: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.button-wrapper {
+  width: 180px;
 }
 
 .action-btn {
+  width: 100%;
   padding: 1rem 2rem;
   border: none;
   border-radius: 12px;
@@ -264,7 +290,9 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  height: 48px;
 }
 
 .create-room-btn {
@@ -413,5 +441,35 @@ export default {
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+}
+
+.create-room-form {
+  padding: 2rem;
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  width: 500px;
+  max-height: calc(90vh - 200px);
+  overflow-y: auto;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.form-header h3 {
+  color: #4CAF50;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.form-body {
+  padding: 1rem;
+  min-height: 200px;
 }
 </style> 
