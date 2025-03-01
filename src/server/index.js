@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const avatarRoutes = require('./routes/avatar');
 const userRoutes = require('./routes/user');
+const dormRoutes = require('./routes/dorm');  // 添加宿舍路由
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());  // 解析JSON请求体
 app.use('/api/auth', authRoutes);
 app.use('/api/avatar', avatarRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/dorm', dormRoutes);  // 注册宿舍路由
 
 // 错误处理中间件
 app.use((err, req, res, next) => {

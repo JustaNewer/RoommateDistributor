@@ -166,12 +166,13 @@ export default {
       showMyRooms: false,
       searchQuery: '',
       avatarUrl: null,
+      showCreateForm: false,
       dormForm: {
         dormName: '',
         schoolName: '',
-        space: 2,
-        floorCount: 1,
-        roomsPerFloor: 1
+        space: 4,  // 默认4人间
+        floorCount: '',
+        roomsPerFloor: ''
       }
     }
   },
@@ -204,9 +205,61 @@ export default {
     toggleCreateRoom() {
       this.showCreateRoomModal = !this.showCreateRoomModal;
     },
-    handleCreateDorm() {
-      // 实现创建宿舍的逻辑
-      console.log('创建宿舍:', this.dormForm);
+    toggleCreateForm() {
+      this.showCreateForm = !this.showCreateForm;
+      if (!this.showCreateForm) {
+        // 重置表单
+        this.dormForm = {
+          dormName: '',
+          schoolName: '',
+          space: 4,
+          floorCount: '',
+          roomsPerFloor: ''
+        };
+      }
+    },
+    async handleCreateDorm() {
+      try {
+        // 表单验证
+        if (!this.dormForm.dormName || !this.dormForm.schoolName || 
+            !this.dormForm.floorCount || !this.dormForm.roomsPerFloor) {
+          alert('请填写所有必要信息');
+          return;
+        }
+
+        if (this.dormForm.floorCount < 1 || this.dormForm.roomsPerFloor < 1) {
+          alert('楼层数和每层房间数必须大于0');
+          return;
+        }
+
+        const userId = localStorage.getItem('userId');  // 使用实际的用户ID
+
+        const response = await fetch('http://localhost:3000/api/dorm/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ...this.dormForm,
+            userId
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || '创建失败');
+        }
+
+        alert('宿舍创建成功！');
+        this.toggleCreateForm();  // 关闭表单
+        
+        // TODO: 刷新宿舍列表
+        
+      } catch (error) {
+        console.error('创建宿舍错误:', error);
+        alert(error.message || '创建失败，请重试');
+      }
     }
   },
   async mounted() {

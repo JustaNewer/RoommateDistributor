@@ -1,0 +1,8 @@
+core.editor="C:\Users\yxh\AppData\Local\Programs\Microsoft VS Code\bin\code" --wait
+filter.lfs.clean=git-lfs clean -- %f
+filter.lfs.smudge=git-lfs smudge -- %f
+filter.lfs.process=git-lfs filter-process
+filter.lfs.required=true
+user.name=JustaNewer
+user.email=1797142078@qq.com
+credential.https://gitee.com.provider=generic
