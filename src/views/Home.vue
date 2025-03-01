@@ -1,5 +1,10 @@
 <template>
   <div class="home-container">
+    <SystemToast 
+      :show="toast.show"
+      :message="toast.message"
+      :type="toast.type"
+    />
     <header class="header">
       <div class="header-content">
         <h1>智能舍友分配系统</h1>
@@ -152,11 +157,13 @@
 
 <script>
 import SidePanel from '../components/SidePanel.vue'
+import SystemToast from '../components/Toast.vue'
 
 export default {
   name: 'HomePage',
   components: {
-    SidePanel
+    SidePanel,
+    SystemToast
   },
   data() {
     return {
@@ -167,6 +174,11 @@ export default {
       searchQuery: '',
       avatarUrl: null,
       showCreateForm: false,
+      toast: {
+        show: false,
+        message: '',
+        type: 'success'
+      },
       dormForm: {
         dormName: '',
         schoolName: '',
@@ -218,21 +230,32 @@ export default {
         };
       }
     },
+    showToast(message, type = 'success') {
+      this.toast = {
+        show: true,
+        message,
+        type
+      };
+      // 3秒后自动关闭
+      setTimeout(() => {
+        this.toast.show = false;
+      }, 3000);
+    },
     async handleCreateDorm() {
       try {
         // 表单验证
         if (!this.dormForm.dormName || !this.dormForm.schoolName || 
             !this.dormForm.floorCount || !this.dormForm.roomsPerFloor) {
-          alert('请填写所有必要信息');
+          this.showToast('请填写所有必要信息', 'error');
           return;
         }
 
         if (this.dormForm.floorCount < 1 || this.dormForm.roomsPerFloor < 1) {
-          alert('楼层数和每层房间数必须大于0');
+          this.showToast('楼层数和每层房间数必须大于0', 'error');
           return;
         }
 
-        const userId = localStorage.getItem('userId');  // 使用实际的用户ID
+        const userId = localStorage.getItem('userId');
 
         const response = await fetch('http://localhost:3000/api/dorm/create', {
           method: 'POST',
@@ -251,14 +274,22 @@ export default {
           throw new Error(data.message || '创建失败');
         }
 
-        alert('宿舍创建成功！');
-        this.toggleCreateForm();  // 关闭表单
+        this.showToast('宿舍创建成功！');
+        this.showCreateRoomModal = false;  // 关闭表单
+        // 重置表单
+        this.dormForm = {
+          dormName: '',
+          schoolName: '',
+          space: 4,
+          floorCount: '',
+          roomsPerFloor: ''
+        };
         
         // TODO: 刷新宿舍列表
         
       } catch (error) {
         console.error('创建宿舍错误:', error);
-        alert(error.message || '创建失败，请重试');
+        this.showToast(error.message || '创建失败，请重试', 'error');
       }
     }
   },
