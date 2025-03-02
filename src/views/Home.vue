@@ -132,19 +132,39 @@
         </div>
 
         <div class="button-wrapper">
-          <button class="action-btn view-rooms-btn" @click="showMyRooms = true">
+          <button class="action-btn joined-rooms-btn" @click="showJoinedRooms = true">
+            <span class="btn-icon">🏠</span>
+            我加入的宿舍
+          </button>
+        </div>
+
+        <div class="button-wrapper">
+          <button class="action-btn created-rooms-btn" @click="showCreatedRooms = true">
             <span class="btn-icon">📋</span>
-            我的宿舍
+            我创建的宿舍
           </button>
         </div>
       </div>
 
-      <!-- 查看宿舍的模态窗口 -->
-      <div class="modal-overlay" v-if="showMyRooms" @click="showMyRooms = false">
+      <!-- 查看加入的宿舍的模态窗口 -->
+      <div class="modal-overlay" v-if="showJoinedRooms" @click="showJoinedRooms = false">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
-            <h3>我的宿舍</h3>
-            <button class="close-btn" @click="showMyRooms = false">×</button>
+            <h3>我加入的宿舍</h3>
+            <button class="close-btn" @click="showJoinedRooms = false">×</button>
+          </div>
+          <div class="modal-body">
+            <p class="placeholder-text">宿舍列表开发中...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 查看创建的宿舍的模态窗口 -->
+      <div class="modal-overlay" v-if="showCreatedRooms" @click="showCreatedRooms = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>我创建的宿舍</h3>
+            <button class="close-btn" @click="showCreatedRooms = false">×</button>
           </div>
           <div class="modal-body">
             <p class="placeholder-text">宿舍列表开发中...</p>
@@ -170,7 +190,8 @@ export default {
       username: localStorage.getItem('username') || '用户',
       isDropdownVisible: false,
       showCreateRoomModal: false,
-      showMyRooms: false,
+      showJoinedRooms: false,
+      showCreatedRooms: false,
       searchQuery: '',
       avatarUrl: null,
       dormForm: {
@@ -408,7 +429,7 @@ export default {
 
 .action-buttons {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   margin-top: 2rem;
   align-items: flex-start;
   justify-content: center;
@@ -418,31 +439,36 @@ export default {
 }
 
 .button-wrapper {
-  width: 180px;
+  width: 200px;
 }
 
 .action-btn {
   width: 100%;
-  padding: 1rem 2rem;
+  padding: 1rem 1.5rem;
   border: none;
   border-radius: 12px;
   color: white;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 48px;
+  height: 52px;
+  white-space: nowrap;
 }
 
 .create-room-btn {
   background-color: #4CAF50;
 }
 
-.view-rooms-btn {
+.joined-rooms-btn {
   background-color: #2196F3;
+}
+
+.created-rooms-btn {
+  background-color: #FF9800;
 }
 
 .action-btn:hover {
@@ -454,8 +480,12 @@ export default {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
 }
 
-.view-rooms-btn:hover {
+.joined-rooms-btn:hover {
   box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.created-rooms-btn:hover {
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
 }
 
 .btn-icon {
