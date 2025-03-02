@@ -104,12 +104,24 @@
         <!-- 性格测试部分 -->
         <div class="personality-section">
           <h2>性格爱好测试</h2>
+          <div class="tags-container" v-if="userTags.length > 0">
+            <h3>我的性格标签</h3>
+            <div class="tags-list">
+              <span 
+                v-for="tag in userTags" 
+                :key="tag" 
+                class="tag"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
           <p class="test-description">
             完成性格测试问卷，帮助我们更好地为您匹配室友。
             测试采用对话形式，轻松有趣地了解您的性格特征。
           </p>
           <button class="test-btn" @click="startPersonalityTest">
-            开始测试
+            {{ userTags.length > 0 ? '重新测试' : '开始测试' }}
             <span class="test-icon">🎯</span>
           </button>
         </div>
@@ -146,7 +158,8 @@ export default {
         oldPassword: false,
         newPassword: false,
         confirmPassword: false
-      }
+      },
+      userTags: []
     }
   },
   methods: {
@@ -247,10 +260,24 @@ export default {
     },
     handleAIAvatarGenerated(avatarUrl) {
       this.avatarUrl = avatarUrl;
+    },
+    async fetchUserTags() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/user/${userId}/tags`);
+        const data = await response.json();
+        
+        if (response.ok && data.data.tags) {
+          this.userTags = data.data.tags;
+        }
+      } catch (error) {
+        console.error('获取用户标签失败:', error);
+      }
     }
   },
   mounted() {
     this.fetchAvatar();
+    this.fetchUserTags();
   }
 }
 </script>
@@ -487,5 +514,43 @@ input::placeholder {
 
 .password-input-wrapper input {
   padding-right: 40px;
+}
+
+.tags-container {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+}
+
+.tags-container h3 {
+  color: #4CAF50;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #1a1a1a;
+  color: #2196F3;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  border: 1px solid #2196F3;
+  transition: all 0.2s;
+}
+
+.tag:hover {
+  background-color: #2196F3;
+  color: white;
+}
+
+.test-btn {
+  margin-top: 1rem;
 }
 </style> 
