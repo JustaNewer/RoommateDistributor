@@ -1,33 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomePage from '../views/Home.vue'
-import LoginPage from '../views/Login.vue'
-import ProfilePage from '../views/Profile.vue'
+import Home from '../views/Home.vue'
+import Login from '../views/Login.vue'
+import Profile from '../views/Profile.vue'
+import CreatedDorms from '../views/CreatedDorms.vue'
 import PersonalityTest from '../views/PersonalityTest.vue'
 
 const routes = [
     {
         path: '/',
-        name: 'Root',
-        component: HomePage,  // 直接使用 HomePage 作为根路径组件
-        meta: { requiresAuth: true }  // 需要登录才能访问
+        name: 'Home',
+        component: Home,
+        meta: { requiresAuth: true }
     },
     {
         path: '/login',
-        name: 'LoginPage',
-        component: LoginPage,
-        meta: { requiresGuest: true }  // 只允许未登录用户访问
-    },
-    {
-        path: '/home',
-        name: 'HomePage',
-        component: HomePage,
-        meta: { requiresAuth: true }  // 需要登录才能访问
+        name: 'Login',
+        component: Login,
+        meta: { requiresGuest: true }
     },
     {
         path: '/profile',
-        name: 'ProfilePage',
-        component: ProfilePage,
-        meta: { requiresAuth: true }  // 需要登录才能访问
+        name: 'Profile',
+        component: Profile,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/created-dorms',
+        name: 'CreatedDorms',
+        component: CreatedDorms,
+        meta: { requiresAuth: true }
     },
     {
         path: '/personality-test',

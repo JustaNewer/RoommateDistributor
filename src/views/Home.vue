@@ -139,7 +139,7 @@
         </div>
 
         <div class="button-wrapper">
-          <button class="action-btn created-rooms-btn" @click="showCreatedRooms = true">
+          <button class="action-btn created-rooms-btn" @click="$router.push('/created-dorms')">
             <span class="btn-icon">📋</span>
             我创建的宿舍
           </button>

@@ -83,4 +83,43 @@ router.post('/create', async (req, res) => {
     }
 });
 
+// 获取用户创建的宿舍
+router.get('/created/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // 联合查询获取宿舍信息和创建者信息
+        const [dorms] = await db.execute(
+            `SELECT 
+                d.dorm_id,
+                d.dorm_name,
+                d.school_name,
+                d.space,
+                d.floor_count,
+                d.rooms_per_floor,
+                d.dorm_hash as hash,
+                u.username as creator_name,
+                u.avatar_url as creator_avatar
+             FROM Dorms d 
+             LEFT JOIN Users u ON d.creator_user_id = u.user_id 
+             WHERE d.creator_user_id = ?
+             ORDER BY d.dorm_id DESC`,
+            [userId]
+        );
+
+        console.log('查询到的宿舍:', dorms); // 添加日志以便调试
+
+        res.json({
+            success: true,
+            data: dorms
+        });
+    } catch (error) {
+        console.error('获取宿舍列表错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
 module.exports = router;
