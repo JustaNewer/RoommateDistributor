@@ -49,6 +49,14 @@
         </button>
       </div>
     </main>
+
+    <button 
+      class="back-to-top" 
+      @click="scrollToTop" 
+      v-show="showBackToTop"
+    >
+      ↑ 回到顶部
+    </button>
   </div>
 </template>
 
@@ -66,32 +74,25 @@ export default {
       userAvatar: null,
       botAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=personality-test',
       chatId: null,
-      extractedTags: []
+      extractedTags: [],
+      showBackToTop: false
     }
   },
   methods: {
     formatMessage(text) {
-      // 添加调试日志
-      console.log('Formatting message:', text);
-      
-      // 确保text是字符串
-      if (typeof text !== 'string') {
-        return text;
-      }
-
-      // 检查是否是问卷结束消息并包含标签
-      if (text.includes('问卷结束') && text.includes('#')) {
-        // 提取所有标签
-        const tags = text.match(/#[^ ]+/g);
-        if (tags) {
-          // 移除#符号并保存标签
-          this.extractedTags = tags.map(tag => tag.substring(1));
-          console.log('提取到的标签:', this.extractedTags);
-          this.saveTags();
+      // 检查是否是问卷结束消息
+      if (text.includes('问卷就到这里')) {
+        // 使用更精确的正则表达式来提取标签
+        const tags = text.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
+        
+        if (tags.length > 0) {
+          // 保存标签
+          this.saveTags(tags);
         }
       }
-
-      return text;
+      
+      // 将#标签转换为带样式的span
+      return text.replace(/#([^#\s,.!?，。！？]+)/g, '<span class="tag">#$1</span>');
     },
     formatTime(timestamp) {
       return new Date(timestamp).toLocaleTimeString('zh-CN', {
@@ -244,6 +245,15 @@ export default {
       const container = this.$refs.messages;
       container.scrollTop = container.scrollHeight;
     },
+    scrollToTop() {
+      this.$refs.chatContent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    },
+    handleScroll() {
+      this.showBackToTop = this.$refs.chatContent.scrollTop > 300;
+    },
     async fetchUserAvatar() {
       try {
         const userId = localStorage.getItem('userId');
@@ -292,15 +302,18 @@ export default {
       // 组件销毁前清理聊天记录
       this.clearChatHistory();
     },
-    async saveTags() {
+    async saveTags(tags) {
       try {
         const userId = localStorage.getItem('userId');
-        if (!userId || !this.extractedTags.length) {
-          console.error('无法保存标签：缺少用户ID或标签');
+        if (!userId || !tags.length) {
+          console.error('无法保存标签：缺少用户ID或标签为空', {
+            userId,
+            tags
+          });
           return;
         }
 
-        console.log('正在保存标签:', { userId, tags: this.extractedTags });
+        console.log('正在保存标签:', { userId, tags });
 
         const response = await fetch('http://localhost:3000/api/user/save-tags', {
           method: 'POST',
@@ -309,7 +322,7 @@ export default {
           },
           body: JSON.stringify({
             userId,
-            tags: this.extractedTags
+            tags
           })
         });
 
@@ -318,10 +331,15 @@ export default {
           console.log('标签保存成功:', data);
           this.testCompleted = true;
         } else {
-          console.error('标签保存失败:', data.message);
+          throw new Error(data.message || '保存标签失败');
         }
       } catch (error) {
         console.error('保存标签时出错:', error);
+        // 添加重试逻辑
+        setTimeout(() => {
+          console.log('尝试重新保存标签...');
+          this.saveTags(tags);
+        }, 1000);
       }
     }
   },
@@ -336,6 +354,11 @@ export default {
         this.sendMessage("你好，我想开始性格测试");
       }
     }, 1000); // 增加延迟时间，确保其他操作完成
+
+    this.$refs.chatContent.addEventListener('scroll', this.handleScroll);
+  },
+  beforeUnmount() {
+    this.$refs.chatContent.removeEventListener('scroll', this.handleScroll);
   }
 }
 </script>
@@ -345,6 +368,7 @@ export default {
   min-height: 100vh;
   background-color: #1a1a1a;
   color: #ffffff;
+  padding-top: 70px; /* 为固定header留出空间 */
   display: flex;
   flex-direction: column;
   max-width: 1200px;
@@ -354,12 +378,17 @@ export default {
 }
 
 .chat-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background-color: #2a2a2a;
   padding: 1rem 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   gap: 2rem;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .back-btn {
@@ -577,5 +606,26 @@ input:focus {
 
 .messages::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.back-to-top:hover {
+  transform: translateY(-2px);
+  background-color: #45a049;
 }
 </style> 

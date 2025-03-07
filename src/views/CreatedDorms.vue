@@ -11,6 +11,7 @@
         :key="dorm.dorm_id" 
         :dorm="dorm"
         class="dorm-card-item"
+        @dorm-deleted="handleDormDeleted"
       />
     </div>
 
@@ -54,6 +55,9 @@ export default {
       } catch (error) {
         console.error('获取宿舍列表错误:', error);
       }
+    },
+    handleDormDeleted(dormId) {
+      this.dorms = this.dorms.filter(dorm => dorm.dorm_id !== dormId);
     }
   },
   mounted() {

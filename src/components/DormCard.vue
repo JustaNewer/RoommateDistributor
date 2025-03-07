@@ -1,6 +1,6 @@
 <!-- 宿舍卡片组件 -->
 <template>
-  <div class="dorm-card">
+  <div class="dorm-card" @click="navigateToDetail">
     <div class="dorm-header">
       <div class="creator-info">
         <img 
@@ -10,6 +10,13 @@
         >
         <span class="creator-name">{{ dorm.creator_name }}</span>
       </div>
+      <button 
+        class="delete-btn" 
+        @click.stop="confirmDelete"
+        v-if="canDelete"
+      >
+        删除
+      </button>
     </div>
     
     <div class="dorm-body">
@@ -20,7 +27,7 @@
         <span class="hash-label">哈希码：</span>
         <div class="hash-value">
           <span class="hash">{{ truncatedHash }}</span>
-          <button class="copy-btn" @click="copyHash" :class="{ copied: isCopied }">
+          <button class="copy-btn" @click.stop="copyHash" :class="{ copied: isCopied }">
             {{ isCopied ? '已复制' : '复制' }}
           </button>
         </div>
@@ -53,6 +60,12 @@ export default {
     truncatedHash() {
       if (!this.dorm.hash) return '无哈希码';
       return this.dorm.hash.slice(0, 8) + '...' + this.dorm.hash.slice(-8);
+    },
+    canDelete() {
+      const userId = localStorage.getItem('userId');
+      console.log('Current userId:', userId);
+      console.log('Dorm creator_user_id:', this.dorm.creator_user_id);
+      return userId && Number(userId) === this.dorm.creator_user_id;
     }
   },
   methods: {
@@ -68,6 +81,29 @@ export default {
       } catch (err) {
         console.error('复制失败:', err);
       }
+    },
+    navigateToDetail() {
+      this.$router.push(`/dorm/${this.dorm.dorm_id}`);
+    },
+    async confirmDelete() {
+      if (confirm('确定要删除这个宿舍吗？此操作不可撤销。')) {
+        try {
+          const response = await fetch(`http://localhost:3000/api/dorm/${this.dorm.dorm_id}`, {
+            method: 'DELETE'
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            this.$emit('dorm-deleted', this.dorm.dorm_id);
+          } else {
+            alert(data.message || '删除失败');
+          }
+        } catch (error) {
+          console.error('删除宿舍错误:', error);
+          alert('删除失败，请稍后重试');
+        }
+      }
     }
   }
 }
@@ -81,6 +117,8 @@ export default {
   width: 100%;
   transition: transform 0.2s, box-shadow 0.2s;
   border: 1px solid #3a3a3a;
+  cursor: pointer;
+  position: relative;
 }
 
 .dorm-card:hover {
@@ -91,6 +129,9 @@ export default {
 .dorm-header {
   padding: 1rem;
   border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .creator-info {
@@ -187,5 +228,21 @@ export default {
   background-color: #1a1a1a;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
 }
 </style> 

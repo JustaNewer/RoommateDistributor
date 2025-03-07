@@ -4,6 +4,7 @@ import Login from '../views/Login.vue'
 import Profile from '../views/Profile.vue'
 import CreatedDorms from '../views/CreatedDorms.vue'
 import PersonalityTest from '../views/PersonalityTest.vue'
+import DormDetail from '../views/DormDetail.vue'
 
 const routes = [
     {
@@ -34,6 +35,12 @@ const routes = [
         path: '/personality-test',
         name: 'PersonalityTest',
         component: PersonalityTest,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/dorm/:id',
+        name: 'DormDetail',
+        component: DormDetail,
         meta: { requiresAuth: true }
     },
     {
