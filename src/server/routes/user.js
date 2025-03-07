@@ -82,99 +82,10 @@ router.get('/:userId/tags', async (req, res) => {
     }
 });
 
-// 保存聊天消息
-router.post('/chat/messages', async (req, res) => {
-    try {
-        const { userId, message, messageType = 'text', isBot = false } = req.body;
-
-        if (!userId || !message) {
-            return res.status(400).json({
-                success: false,
-                message: '无效的参数'
-            });
-        }
-
-        // 插入消息记录
-        const [result] = await db.execute(
-            `INSERT INTO chat_messages 
-            (user_id, bot_id, message, message_type, status) 
-            VALUES (?, ?, ?, ?, ?)`,
-            [
-                userId,
-                isBot ? 1 : 0,  // bot_id: 1 表示性格测试智能体，0 表示用户消息
-                message,
-                messageType,
-                'sent'  // 初始状态为已发送
-            ]
-        );
-
-        res.json({
-            success: true,
-            message: '消息保存成功',
-            data: {
-                messageId: result.insertId,
-                timestamp: new Date()
-            }
-        });
-    } catch (error) {
-        console.error('保存消息错误:', error);
-        res.status(500).json({
-            success: false,
-            message: '服务器错误'
-        });
-    }
-});
-
-// 获取聊天历史
-router.get('/chat/messages/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-
-        const [messages] = await db.execute(
-            'SELECT * FROM chat_messages WHERE user_id = ? AND is_deleted = FALSE ORDER BY timestamp ASC',
-            [userId]
-        );
-
-        res.json({
-            success: true,
-            data: messages
-        });
-    } catch (error) {
-        console.error('获取消息错误:', error);
-        res.status(500).json({
-            success: false,
-            message: '服务器错误'
-        });
-    }
-});
-
-// 删除用户的聊天记录
-router.delete('/chat/messages/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-
-        await db.execute(
-            'UPDATE chat_messages SET is_deleted = TRUE WHERE user_id = ?',
-            [userId]
-        );
-
-        res.json({
-            success: true,
-            message: '消息删除成功'
-        });
-    } catch (error) {
-        console.error('删除消息错误:', error);
-        res.status(500).json({
-            success: false,
-            message: '服务器错误'
-        });
-    }
-});
-
 // 代理转发百度 API 请求
 router.post('/chat/proxy', async (req, res) => {
     try {
-        const { message, userId, threadId } = req.body;  // 从请求中获取 threadId
+        const { message, userId, threadId } = req.body;
         const appId = 'XWahSwAVRT6xrylMQ2jNDqh3khsbVzdE';
         const secretKey = 'xk2PgqDNrIUthoQrQ8zaVUXyqhRsw9Zu';
 
@@ -261,21 +172,12 @@ router.post('/chat/proxy', async (req, res) => {
 
         console.log('Step 4 - Extracted response:', botResponse);
 
-        // 保存机器人的回复到数据库
-        console.log('Step 5 - Saving bot response to database');
-        const [saveResult] = await db.execute(
-            `INSERT INTO chat_messages 
-            (user_id, bot_id, message, message_type, status) 
-            VALUES (?, ?, ?, ?, ?)`,
-            [userId, 1, botResponse, 'text', 'sent']
-        );
-
-        console.log('Step 6 - Sending final response to client');
+        // 直接返回响应，不再过滤
+        console.log('Step 5 - Sending final response to client');
         res.json({
             success: true,
             message: botResponse,
             threadId: data.data?.threadId,
-            messageId: saveResult.insertId,
             timestamp: new Date()
         });
 
@@ -288,6 +190,16 @@ router.post('/chat/proxy', async (req, res) => {
             stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
+});
+
+// 清除用户对话历史
+router.delete('/chat/history/:userId', (req, res) => {
+    const { userId } = req.params;
+
+    res.json({
+        success: true,
+        message: '对话历史已清除'
+    });
 });
 
 module.exports = router; 

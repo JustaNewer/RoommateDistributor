@@ -269,28 +269,55 @@ router.delete('/:dormId', async (req, res) => {
             });
         }
 
-        // 删除宿舍
-        const [result] = await db.execute(
-            'DELETE FROM Dorms WHERE dorm_id = ?',
-            [dormId]
-        );
+        // 开始事务
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
 
-        if (result.affectedRows > 0) {
-            res.json({
-                success: true,
-                message: '宿舍删除成功'
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: '删除失败'
-            });
+        try {
+            // 1. 先删除与该宿舍关联的床位分配记录
+            await connection.execute(
+                'DELETE FROM dormoccupants WHERE room_id IN (SELECT room_id FROM rooms WHERE dorm_id = ?)',
+                [dormId]
+            );
+
+            // 2. 删除与该宿舍关联的房间记录
+            await connection.execute(
+                'DELETE FROM rooms WHERE dorm_id = ?',
+                [dormId]
+            );
+
+            // 3. 最后删除宿舍
+            const [result] = await connection.execute(
+                'DELETE FROM dorms WHERE dorm_id = ?',
+                [dormId]
+            );
+
+            // 提交事务
+            await connection.commit();
+            connection.release();
+
+            if (result.affectedRows > 0) {
+                res.json({
+                    success: true,
+                    message: '宿舍删除成功'
+                });
+            } else {
+                res.status(400).json({
+                    success: false,
+                    message: '删除失败'
+                });
+            }
+        } catch (error) {
+            // 如果出错，回滚事务
+            await connection.rollback();
+            connection.release();
+            throw error;
         }
     } catch (error) {
         console.error('删除宿舍错误:', error);
         res.status(500).json({
             success: false,
-            message: '服务器错误'
+            message: '服务器错误: ' + error.message
         });
     }
 });

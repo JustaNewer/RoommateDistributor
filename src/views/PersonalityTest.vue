@@ -120,30 +120,6 @@ export default {
       };
       this.messages.push(userMessage);
 
-      // 保存用户消息到数据库
-      try {
-        const saveResponse = await fetch('http://localhost:3000/api/user/chat/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: localStorage.getItem('userId'),
-            message: messageToSend,
-            messageType: 'text',
-            isBot: false
-          })
-        });
-
-        const saveData = await saveResponse.json();
-        if (saveData.success) {
-          userMessage.messageId = saveData.data.messageId;
-          userMessage.timestamp = new Date(saveData.data.timestamp);
-        }
-      } catch (error) {
-        console.error('保存用户消息失败:', error);
-      }
-
       // 清空输入框
       this.userInput = '';
       this.showOptions = false;
@@ -200,30 +176,6 @@ export default {
         };
         this.messages.push(botMessage);
 
-        // 保存机器人消息到数据库
-        try {
-          const saveBotResponse = await fetch('http://localhost:3000/api/user/chat/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: localStorage.getItem('userId'),
-              message: botResponse,
-              messageType: 'text',
-              isBot: true
-            })
-          });
-
-          const saveBotData = await saveBotResponse.json();
-          if (saveBotData.success) {
-            botMessage.messageId = saveBotData.data.messageId;
-            botMessage.timestamp = new Date(saveBotData.data.timestamp);
-          }
-        } catch (error) {
-          console.error('保存机器人消息失败:', error);
-        }
-
         // 自动滚动到底部
         this.$nextTick(() => {
           this.scrollToBottom();
@@ -271,37 +223,6 @@ export default {
         this.userAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${localStorage.getItem('username')}`;
       }
     },
-    async loadChatHistory() {
-      try {
-        const userId = localStorage.getItem('userId');
-        const response = await fetch(`http://localhost:3000/api/user/chat/messages/${userId}`);
-        const data = await response.json();
-        
-        if (response.ok && data.data) {
-          this.messages = data.data.map(msg => ({
-            content: msg.message,
-            type: msg.bot_id === 1 ? 'bot' : 'user',
-            timestamp: new Date(msg.timestamp)
-          }));
-        }
-      } catch (error) {
-        console.error('加载聊天历史失败:', error);
-      }
-    },
-    async clearChatHistory() {
-      try {
-        const userId = localStorage.getItem('userId');
-        await fetch(`http://localhost:3000/api/user/chat/messages/${userId}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        console.error('清理聊天历史失败:', error);
-      }
-    },
-    beforeDestroy() {
-      // 组件销毁前清理聊天记录
-      this.clearChatHistory();
-    },
     async saveTags(tags) {
       try {
         const userId = localStorage.getItem('userId');
@@ -345,16 +266,9 @@ export default {
   },
   async mounted() {
     await this.fetchUserAvatar();
-    await this.clearChatHistory(); // 确保开始新的对话
-    await this.loadChatHistory();
     
-    // 使用 setTimeout 确保组件完全挂载后再发送消息
-    setTimeout(() => {
-      if (this.messages.length === 0) {
-        this.sendMessage("你好，我想开始性格测试");
-      }
-    }, 1000); // 增加延迟时间，确保其他操作完成
-
+    // 直接发送初始消息开始新的对话
+    this.sendMessage("你好，我想开始性格测试");
     this.$refs.chatContent.addEventListener('scroll', this.handleScroll);
   },
   beforeUnmount() {

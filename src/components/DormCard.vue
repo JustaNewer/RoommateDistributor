@@ -1,44 +1,65 @@
 <!-- 宿舍卡片组件 -->
 <template>
-  <div class="dorm-card" @click="navigateToDetail">
-    <div class="dorm-header">
-      <div class="creator-info">
-        <img 
-          :src="dorm.creator_avatar || '/default-avatar.png'" 
-          :alt="dorm.creator_name"
-          class="creator-avatar"
+  <div>
+    <div class="dorm-card" @click="navigateToDetail">
+      <div class="dorm-header">
+        <div class="creator-info">
+          <img 
+            :src="dorm.creator_avatar || '/default-avatar.png'" 
+            :alt="dorm.creator_name"
+            class="creator-avatar"
+          >
+          <span class="creator-name">{{ dorm.creator_name }}</span>
+        </div>
+        <button 
+          class="delete-btn" 
+          @click.stop="showConfirmDialog = true"
+          v-if="canDelete"
         >
-        <span class="creator-name">{{ dorm.creator_name }}</span>
+          删除
+        </button>
       </div>
-      <button 
-        class="delete-btn" 
-        @click.stop="confirmDelete"
-        v-if="canDelete"
-      >
-        删除
-      </button>
-    </div>
-    
-    <div class="dorm-body">
-      <h3 class="dorm-name">{{ dorm.dorm_name }}</h3>
-      <p class="school-name">{{ dorm.school_name }}</p>
       
-      <div class="hash-container">
-        <span class="hash-label">哈希码：</span>
-        <div class="hash-value">
-          <span class="hash">{{ truncatedHash }}</span>
-          <button class="copy-btn" @click.stop="copyHash" :class="{ copied: isCopied }">
-            {{ isCopied ? '已复制' : '复制' }}
-          </button>
+      <div class="dorm-body">
+        <h3 class="dorm-name">{{ dorm.dorm_name }}</h3>
+        <p class="school-name">{{ dorm.school_name }}</p>
+        
+        <div class="hash-container">
+          <span class="hash-label">哈希码：</span>
+          <div class="hash-value">
+            <span class="hash">{{ truncatedHash }}</span>
+            <button class="copy-btn" @click.stop="copyHash" :class="{ copied: isCopied }">
+              {{ isCopied ? '已复制' : '复制' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="dorm-info">
+          <span class="info-item">容量: {{ dorm.space }}人</span>
+          <span class="info-item">楼层: {{ dorm.floor_count }}层</span>
+          <span class="info-item">每层: {{ dorm.rooms_per_floor }}间</span>
         </div>
       </div>
+    </div>
 
-      <div class="dorm-info">
-        <span class="info-item">容量: {{ dorm.space }}人</span>
-        <span class="info-item">楼层: {{ dorm.floor_count }}层</span>
-        <span class="info-item">每层: {{ dorm.rooms_per_floor }}间</span>
+    <!-- 自定义确认对话框 -->
+    <div class="confirm-dialog-overlay" v-if="showConfirmDialog" @click.stop="showConfirmDialog = false">
+      <div class="confirm-dialog" @click.stop>
+        <h3>确认删除</h3>
+        <p>确定要删除这个宿舍吗？此操作不可撤销。</p>
+        <div class="confirm-buttons">
+          <button class="cancel-btn" @click="showConfirmDialog = false">取消</button>
+          <button class="confirm-btn" @click="handleDelete">确认删除</button>
+        </div>
       </div>
     </div>
+
+    <!-- 添加成功提示框 -->
+    <transition name="fade">
+      <div class="success-toast" v-if="showSuccessToast">
+        <span>删除成功</span>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -53,7 +74,9 @@ export default {
   },
   data() {
     return {
-      isCopied: false
+      isCopied: false,
+      showSuccessToast: false,
+      showConfirmDialog: false
     }
   },
   computed: {
@@ -85,24 +108,35 @@ export default {
     navigateToDetail() {
       this.$router.push(`/dorm/${this.dorm.dorm_id}`);
     },
-    async confirmDelete() {
-      if (confirm('确定要删除这个宿舍吗？此操作不可撤销。')) {
-        try {
-          const response = await fetch(`http://localhost:3000/api/dorm/${this.dorm.dorm_id}`, {
-            method: 'DELETE'
-          });
+    confirmDelete() {
+      this.showConfirmDialog = true;
+    },
+    async handleDelete() {
+      try {
+        const response = await fetch(`http://localhost:3000/api/dorm/${this.dorm.dorm_id}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        // 关闭确认对话框
+        this.showConfirmDialog = false;
+        
+        if (response.ok) {
+          // 显示成功提示框
+          this.showSuccessToast = true;
           
-          const data = await response.json();
-          
-          if (response.ok) {
+          // 3秒后自动关闭提示框并通知父组件
+          setTimeout(() => {
+            this.showSuccessToast = false;
             this.$emit('dorm-deleted', this.dorm.dorm_id);
-          } else {
-            alert(data.message || '删除失败');
-          }
-        } catch (error) {
-          console.error('删除宿舍错误:', error);
-          alert('删除失败，请稍后重试');
+          }, 2500);
+        } else {
+          alert(data.message || '删除失败');
         }
+      } catch (error) {
+        console.error('删除宿舍错误:', error);
+        alert('删除失败，请稍后重试');
       }
     }
   }
@@ -244,5 +278,96 @@ export default {
 .delete-btn:hover {
   background-color: #c82333;
   transform: translateY(-1px);
+}
+
+/* 成功提示框样式 */
+.success-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* 过渡效果 */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+/* 自定义确认对话框样式 */
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+.confirm-dialog {
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-dialog h3 {
+  color: #dc3545;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.confirm-dialog p {
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.confirm-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-btn:hover {
+  background-color: #c82333;
 }
 </style> 
