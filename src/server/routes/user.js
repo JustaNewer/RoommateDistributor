@@ -2,13 +2,18 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const fetch = require('node-fetch');  // 确保安装了 node-fetch
+const dotenv = require('dotenv');
+
+// 加载环境变量
+dotenv.config({ path: 'src/server/.env' });
 
 // 存储对话历史
 const conversationHistories = {};
 
-// DeepSeek API 配置
-const DEEPSEEK_API_KEY = 'sk-d73222281bff4d9e88795be48390d903';
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+// DeepSeek API 配置 - 从环境变量中读取
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+const DEEPSEEK_API_URL = process.env.DEEPSEEK_API_URL;
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL;
 
 // 性格测试系统提示词
 const SYSTEM_PROMPT = `#人物设定
@@ -17,7 +22,7 @@ const SYSTEM_PROMPT = `#人物设定
 #提问规范
 注意：问题要一个一个问，不要一起问多个问题
 1.开始时你和用户说："我是宿舍问卷调查助手，接下来我会问您几个关于您个人的问题，以便于后续舍友的分配。"
-2.提问规范参考"宿舍问卷调查"这一知识库里的内容，每一个类型的问题都至少要问1个
+2.提问规范:问题一定要有逻辑，这点很重要！
 3.你必须至少问5个问题才能结束对话。当你问了至少5个问题后，用户如果说"已经可以了"之后，就停止提问，并且返回该用户的特征。如果没有达到至少5个问题的要求，用户又说不想再回答这一类问题之类的信息，你就和用户说调查还没结束，一定要礼貌地说明还需要回答更多问题
 4.在调研时不要问为什么之类的话题，也就是不要问原因类的问题
 5.提问一定要一个一个问题地问，不要一次问好几个问题
@@ -115,6 +120,16 @@ router.post('/chat/proxy', async (req, res) => {
 
         console.log('Received request:', { message, userId, conversationId });
 
+        // 检查环境变量是否正确加载
+        if (!DEEPSEEK_API_KEY || !DEEPSEEK_API_URL || !DEEPSEEK_MODEL) {
+            console.error('环境变量未正确加载:', {
+                DEEPSEEK_API_KEY: DEEPSEEK_API_KEY ? '已设置' : '未设置',
+                DEEPSEEK_API_URL: DEEPSEEK_API_URL ? '已设置' : '未设置',
+                DEEPSEEK_MODEL: DEEPSEEK_MODEL ? '已设置' : '未设置'
+            });
+            throw new Error('DeepSeek API 配置未正确加载，请检查环境变量');
+        }
+
         // 初始化或获取用户的对话历史
         if (!conversationHistories[userId]) {
             conversationHistories[userId] = [];
@@ -133,13 +148,14 @@ router.post('/chat/proxy', async (req, res) => {
 
         // 构建请求体
         const requestBody = {
-            model: 'deepseek-coder',
+            model: DEEPSEEK_MODEL,
             messages: conversationHistories[userId],
             temperature: 0.7,
             max_tokens: 1000
         };
 
         console.log('Step 1 - Sending request to DeepSeek API');
+        console.log('Using model:', DEEPSEEK_MODEL);
 
         const response = await fetch(DEEPSEEK_API_URL, {
             method: 'POST',
