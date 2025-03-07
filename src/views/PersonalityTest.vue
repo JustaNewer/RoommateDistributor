@@ -8,15 +8,17 @@
     </header>
 
     <main class="chat-content" ref="chatContent">
-      <div class="messages" ref="messages">
-        <div v-for="(message, index) in messages" :key="index" 
-          :class="['message', message.type === 'user' ? 'user-message' : 'bot-message']">
-          <div class="message-avatar">
-            <img :src="message.type === 'user' ? userAvatar : botAvatar" :alt="message.type === 'user' ? '用户头像' : '智能体头像'">
-          </div>
-          <div class="message-content">
-            <div class="message-text" v-html="formatMessage(message.content)"></div>
-            <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+      <div class="messages-container">
+        <div class="messages" ref="messages">
+          <div v-for="(message, index) in messages" :key="index" 
+            :class="['message', message.type === 'user' ? 'user-message' : 'bot-message']">
+            <div class="message-avatar">
+              <img :src="message.type === 'user' ? userAvatar : botAvatar" :alt="message.type === 'user' ? '用户头像' : '智能体头像'">
+            </div>
+            <div class="message-content">
+              <div class="message-text" v-html="formatMessage(message.content)"></div>
+              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -32,7 +34,7 @@
         </button>
       </div>
 
-      <div v-if="!testCompleted" class="input-container">
+      <div class="input-container" v-if="!testCompleted">
         <input 
           type="text" 
           v-model="userInput"
@@ -73,7 +75,7 @@ export default {
       currentOptions: [],
       userAvatar: null,
       botAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=personality-test',
-      chatId: null,
+      conversationId: null,
       extractedTags: [],
       showBackToTop: false
     }
@@ -81,11 +83,14 @@ export default {
   methods: {
     formatMessage(text) {
       // 检查是否是问卷结束消息
-      if (text.includes('问卷就到这里')) {
+      if (text.includes('问卷就到这里') || text.includes('问卷结束')) {
         // 使用更精确的正则表达式来提取标签
         const tags = text.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
         
         if (tags.length > 0) {
+          console.log('检测到标签:', tags);
+          // 设置测试完成状态
+          this.testCompleted = true;
           // 保存标签
           this.saveTags(tags);
         }
@@ -124,6 +129,11 @@ export default {
       this.userInput = '';
       this.showOptions = false;
       this.isWaitingForBot = true;
+      
+      // 立即滚动到底部显示用户消息
+      this.$nextTick(() => {
+        this.scrollToBottom();
+      });
 
       try {
         // 调用智能体API
@@ -137,7 +147,7 @@ export default {
           body: JSON.stringify({
             message: messageToSend,
             userId: localStorage.getItem('userId') || 'default_user',
-            threadId: this.chatId
+            conversationId: this.conversationId
           })
         });
 
@@ -163,9 +173,9 @@ export default {
         }
 
         // 保存会话ID（如果存在）
-        if (data.threadId) {
-          this.chatId = data.threadId;
-          console.log('Updated threadId:', this.chatId);
+        if (data.conversationId) {
+          this.conversationId = data.conversationId;
+          console.log('Updated conversationId:', this.conversationId);
         }
 
         // 添加机器人消息
@@ -176,7 +186,18 @@ export default {
         };
         this.messages.push(botMessage);
 
-        // 自动滚动到底部
+        // 检查是否包含标签，如果包含则设置测试完成状态
+        if (botResponse.includes('#')) {
+          const tags = botResponse.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
+          if (tags.length > 0) {
+            console.log('检测到标签，设置测试完成状态:', tags);
+            this.testCompleted = true;
+            // 保存提取的标签
+            this.extractedTags = tags;
+          }
+        }
+
+        // 自动滚动到底部显示机器人回复
         this.$nextTick(() => {
           this.scrollToBottom();
         });
@@ -189,22 +210,38 @@ export default {
           timestamp: new Date(),
           isError: true
         });
+        
+        // 错误消息也需要滚动到底部
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
       } finally {
         this.isWaitingForBot = false;
       }
     },
     scrollToBottom() {
-      const container = this.$refs.messages;
-      container.scrollTop = container.scrollHeight;
+      // 使用 messages-container 作为滚动容器
+      const container = this.$refs.chatContent.querySelector('.messages-container');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
     },
     scrollToTop() {
-      this.$refs.chatContent.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      // 使用 messages-container 作为滚动容器
+      const container = this.$refs.chatContent.querySelector('.messages-container');
+      if (container) {
+        container.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
     },
     handleScroll() {
-      this.showBackToTop = this.$refs.chatContent.scrollTop > 300;
+      // 使用 messages-container 作为滚动容器
+      const container = this.$refs.chatContent.querySelector('.messages-container');
+      if (container) {
+        this.showBackToTop = container.scrollTop > 300;
+      }
     },
     async fetchUserAvatar() {
       try {
@@ -267,12 +304,39 @@ export default {
   async mounted() {
     await this.fetchUserAvatar();
     
+    // 清除之前的对话历史
+    try {
+      const userId = localStorage.getItem('userId');
+      await fetch(`http://localhost:3000/api/user/chat/history/${userId}`, {
+        method: 'DELETE'
+      });
+      console.log('对话历史已清除');
+    } catch (error) {
+      console.error('清除对话历史失败:', error);
+    }
+    
     // 直接发送初始消息开始新的对话
     this.sendMessage("你好，我想开始性格测试");
-    this.$refs.chatContent.addEventListener('scroll', this.handleScroll);
+    
+    // 监听滚动事件
+    const container = this.$refs.chatContent.querySelector('.messages-container');
+    if (container) {
+      container.addEventListener('scroll', this.handleScroll);
+    }
   },
   beforeUnmount() {
-    this.$refs.chatContent.removeEventListener('scroll', this.handleScroll);
+    // 移除滚动事件监听
+    const container = this.$refs.chatContent.querySelector('.messages-container');
+    if (container) {
+      container.removeEventListener('scroll', this.handleScroll);
+    }
+  },
+  // 添加 updated 生命周期钩子，确保内容更新后滚动到底部
+  updated() {
+    // 如果是新消息，自动滚动到底部
+    if (this.messages.length > 0) {
+      this.scrollToBottom();
+    }
   }
 }
 </script>
@@ -322,21 +386,23 @@ export default {
 
 .chat-content {
   flex: 1;
-  padding: 2rem;
   display: flex;
   flex-direction: column;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
   height: calc(100vh - 80px); /* 减去header的高度 */
-  overflow: hidden;
+  position: relative;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 2rem 1rem 2rem;
+  margin-bottom: 80px; /* 为固定的输入框留出空间 */
 }
 
 .messages {
-  flex: 1;
-  overflow-y: auto;
-  margin-bottom: 2rem;
-  padding: 0 1rem;
   display: flex;
   flex-direction: column;
 }
@@ -435,12 +501,18 @@ export default {
 .input-container {
   display: flex;
   gap: 1rem;
-  margin-top: auto;
   padding: 1rem;
   background-color: #1a1a1a;
   border-top: 1px solid #2a2a2a;
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
 input {
@@ -482,6 +554,7 @@ input:focus {
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
+  padding: 0 1rem;
 }
 
 .option-btn {
@@ -505,26 +578,26 @@ input:focus {
 }
 
 /* 自定义滚动条 */
-.messages::-webkit-scrollbar {
+.messages-container::-webkit-scrollbar {
   width: 8px;
 }
 
-.messages::-webkit-scrollbar-track {
+.messages-container::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
 
-.messages::-webkit-scrollbar-thumb {
+.messages-container::-webkit-scrollbar-thumb {
   background: #4a4a4a;
   border-radius: 4px;
 }
 
-.messages::-webkit-scrollbar-thumb:hover {
+.messages-container::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
 .back-to-top {
   position: fixed;
-  bottom: 2rem;
+  bottom: 90px; /* 调整位置，避免与输入框重叠 */
   left: 2rem;
   background-color: #4CAF50;
   color: white;
