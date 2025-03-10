@@ -37,10 +37,11 @@
           <input 
             type="text" 
             class="search-input" 
-            placeholder="搜索宿舍..."
+            placeholder="输入宿舍名，所在学校，哈希码..."
             v-model="searchQuery"
+            @keyup.enter="handleSearch"
           >
-          <button class="search-btn">
+          <button class="search-btn" @click="handleSearch">
             🔍
           </button>
         </div>
@@ -297,6 +298,19 @@ export default {
         console.error('创建宿舍错误:', error);
         this.showToast('网络错误，请稍后重试', 'error');
       }
+    },
+    handleSearch() {
+      // 如果搜索查询为空，不执行搜索
+      if (!this.searchQuery || this.searchQuery.trim() === '') {
+        this.showToast('请输入搜索内容', 'warning');
+        return;
+      }
+      
+      // 跳转到搜索结果页面，并传递搜索查询参数
+      this.$router.push({
+        path: '/search-results',
+        query: { q: this.searchQuery }
+      });
     }
   },
   async mounted() {

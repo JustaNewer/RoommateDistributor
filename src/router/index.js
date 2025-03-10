@@ -5,6 +5,7 @@ import Profile from '../views/Profile.vue'
 import CreatedDorms from '../views/CreatedDorms.vue'
 import PersonalityTest from '../views/PersonalityTest.vue'
 import DormDetail from '../views/DormDetail.vue'
+import SearchResults from '../views/SearchResults.vue'
 
 const routes = [
     {
@@ -41,6 +42,12 @@ const routes = [
         path: '/dorm/:id',
         name: 'DormDetail',
         component: DormDetail,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/search-results',
+        name: 'SearchResults',
+        component: SearchResults,
         meta: { requiresAuth: true }
     },
     {

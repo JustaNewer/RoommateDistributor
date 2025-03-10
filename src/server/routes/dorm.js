@@ -322,4 +322,57 @@ router.delete('/:dormId', async (req, res) => {
     }
 });
 
+// 搜索宿舍
+router.get('/search/:query', async (req, res) => {
+    try {
+        const { query } = req.params;
+
+        // 如果查询为空，返回空结果
+        if (!query || query.trim() === '') {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        // 使用LIKE进行模糊搜索，匹配宿舍名称、学校名称或宿舍哈希码
+        const searchQuery = `%${query}%`;
+
+        // 联合查询获取宿舍信息和创建者信息
+        const [dorms] = await db.execute(
+            `SELECT 
+                d.dorm_id,
+                d.dorm_name,
+                d.school_name,
+                d.space,
+                d.floor_count,
+                d.rooms_per_floor,
+                d.dorm_hash as hash,
+                d.creator_user_id,
+                u.username as creator_name,
+                u.avatar_url as creator_avatar
+             FROM Dorms d 
+             LEFT JOIN Users u ON d.creator_user_id = u.user_id 
+             WHERE d.dorm_name LIKE ? 
+                OR d.school_name LIKE ? 
+                OR d.dorm_hash LIKE ?
+             ORDER BY d.dorm_id DESC`,
+            [searchQuery, searchQuery, searchQuery]
+        );
+
+        console.log('搜索结果:', dorms); // 添加日志以便调试
+
+        res.json({
+            success: true,
+            data: dorms
+        });
+    } catch (error) {
+        console.error('搜索宿舍错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
 module.exports = router;
