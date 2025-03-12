@@ -155,95 +155,121 @@ router.post('/chat/proxy', async (req, res) => {
         };
 
         console.log('Step 1 - Sending request to DeepSeek API');
-        console.log('Using model:', DEEPSEEK_MODEL);
+        console.log('Using model:', requestBody.model);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-        const response = await fetch(DEEPSEEK_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-            },
-            body: JSON.stringify(requestBody)
-        });
+        // 设置超时控制
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
 
-        const data = await response.json();
-        console.log('Step 2 - DeepSeek API Response:', JSON.stringify(data, null, 2));
+        try {
+            const response = await fetch(DEEPSEEK_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal
+            });
 
-        if (!response.ok) {
-            console.error('API Error Response:', data);
-            throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
-        }
+            clearTimeout(timeoutId); // 清除超时
 
-        // 提取回复内容
-        let botResponse = null;
-        if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-            botResponse = data.choices[0].message.content;
-        }
+            const responseText = await response.text();
+            console.log('Raw API Response:', responseText);
 
-        if (!botResponse) {
-            console.error('无法找到有效的回复内容:', data);
-            throw new Error('无法从API响应中提取文本内容');
-        }
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Step 2 - DeepSeek API Response:', JSON.stringify(data, null, 2));
+            } catch (parseError) {
+                console.error('Failed to parse API response as JSON:', parseError);
+                throw new Error(`API响应解析失败: ${responseText.substring(0, 200)}...`);
+            }
 
-        console.log('Step 3 - Extracted response:', botResponse);
+            if (!response.ok) {
+                console.error('API Error Response:', data);
+                throw new Error(`API请求失败: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);
+            }
 
-        // 添加机器人回复到历史
-        conversationHistories[userId].push({
-            role: 'assistant',
-            content: botResponse
-        });
+            // 提取回复内容
+            let botResponse = null;
+            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+                botResponse = data.choices[0].message.content;
+            }
 
-        // 检查是否包含标签，如果包含则自动保存
-        if (botResponse.includes('#')) {
-            const tags = botResponse.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
+            if (!botResponse) {
+                console.error('无法找到有效的回复内容:', data);
+                throw new Error('无法从API响应中提取文本内容');
+            }
 
-            if (tags.length > 0) {
-                try {
-                    console.log('检测到标签，自动保存:', tags);
+            console.log('Step 3 - Extracted response:', botResponse);
 
-                    // 确保标签数量在合理范围内
-                    const validTags = tags.slice(0, Math.min(tags.length, 5));
-                    console.log('有效标签:', validTags);
+            // 添加机器人回复到历史
+            conversationHistories[userId].push({
+                role: 'assistant',
+                content: botResponse
+            });
 
-                    // 更新用户标签
-                    const [result] = await db.execute(
-                        'UPDATE Users SET user_tags = ? WHERE user_id = ?',
-                        [validTags.join(' '), userId]
-                    );
+            // 检查是否包含标签，如果包含则自动保存
+            if (botResponse.includes('#')) {
+                const tags = botResponse.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
 
-                    console.log('标签自动保存结果:', result);
+                if (tags.length > 0) {
+                    try {
+                        console.log('检测到标签，自动保存:', tags);
 
-                    if (result.affectedRows === 0) {
-                        console.warn('未能更新用户标签，可能用户ID不存在:', userId);
-                    } else {
-                        console.log('标签自动保存成功');
+                        // 确保标签数量在合理范围内
+                        const validTags = tags.slice(0, Math.min(tags.length, 5));
+                        console.log('有效标签:', validTags);
+
+                        // 更新用户标签
+                        const [result] = await db.execute(
+                            'UPDATE Users SET user_tags = ? WHERE user_id = ?',
+                            [validTags.join(' '), userId]
+                        );
+
+                        console.log('标签自动保存结果:', result);
+
+                        if (result.affectedRows === 0) {
+                            console.warn('未能更新用户标签，可能用户ID不存在:', userId);
+                        } else {
+                            console.log('标签自动保存成功');
+                        }
+                    } catch (tagError) {
+                        console.error('自动保存标签错误:', tagError);
                     }
-                } catch (tagError) {
-                    console.error('自动保存标签错误:', tagError);
                 }
             }
+
+            // 限制历史长度，避免过长
+            if (conversationHistories[userId].length > 50) {
+                // 保留系统提示词和最近的消息
+                const systemMessage = conversationHistories[userId][0];
+                conversationHistories[userId] = [
+                    systemMessage,
+                    ...conversationHistories[userId].slice(-49)
+                ];
+            }
+
+            // 返回响应
+            console.log('Step 4 - Sending final response to client');
+            res.json({
+                success: true,
+                message: botResponse,
+                conversationId: data.id || 'deepseek-conversation',
+                timestamp: new Date()
+            });
+        } catch (fetchError) {
+            clearTimeout(timeoutId); // 确保清除超时
+
+            if (fetchError.name === 'AbortError') {
+                throw new Error('API请求超时，请稍后重试');
+            }
+
+            throw fetchError; // 重新抛出错误，由外层 catch 处理
         }
-
-        // 限制历史长度，避免过长
-        if (conversationHistories[userId].length > 50) {
-            // 保留系统提示词和最近的消息
-            const systemMessage = conversationHistories[userId][0];
-            conversationHistories[userId] = [
-                systemMessage,
-                ...conversationHistories[userId].slice(-49)
-            ];
-        }
-
-        // 返回响应
-        console.log('Step 4 - Sending final response to client');
-        res.json({
-            success: true,
-            message: botResponse,
-            conversationId: data.id || 'deepseek-conversation',
-            timestamp: new Date()
-        });
-
     } catch (error) {
         console.error('代理请求错误:', error);
         console.error('Error stack:', error.stack);

@@ -11,13 +11,22 @@
           >
           <span class="creator-name">{{ dorm.creator_name }}</span>
         </div>
-        <button 
-          class="delete-btn" 
-          @click.stop="showConfirmDialog = true"
-          v-if="canDelete"
-        >
-          删除
-        </button>
+        <div class="action-buttons">
+          <button 
+            class="edit-btn" 
+            @click.stop="$emit('edit-dorm', dorm)"
+            v-if="canDelete"
+          >
+            编辑
+          </button>
+          <button 
+            class="delete-btn" 
+            @click.stop="showConfirmDialog = true"
+            v-if="canDelete"
+          >
+            删除
+          </button>
+        </div>
       </div>
       
       <div class="dorm-body">
@@ -187,6 +196,43 @@ export default {
   font-size: 0.9rem;
 }
 
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  background-color: #FFC107;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: #FFB300;
+  transform: translateY(-1px);
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
 .dorm-body {
   padding: 1rem;
 }
@@ -262,22 +308,6 @@ export default {
   background-color: #1a1a1a;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
-}
-
-.delete-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
-  transform: translateY(-1px);
 }
 
 /* 成功提示框样式 */
