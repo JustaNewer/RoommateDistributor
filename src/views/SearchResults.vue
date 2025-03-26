@@ -4,7 +4,7 @@
       <button class="back-btn" @click="$router.back()">
         ← 返回
       </button>
-      <h1>搜索结果: "{{ searchQuery }}"</h1>
+      <h1>搜索结果:</h1>
     </header>
 
     <main class="results-content">
@@ -22,7 +22,9 @@
           v-for="dorm in dorms" 
           :key="dorm.dorm_id" 
           :dorm="dorm"
+          :inSearchResults="true"
           @dorm-deleted="handleDormDeleted"
+          @join-dorm="handleJoinDorm"
         />
       </div>
     </main>
@@ -79,6 +81,10 @@ export default {
     handleDormDeleted(dormId) {
       // 从列表中移除被删除的宿舍
       this.dorms = this.dorms.filter(dorm => dorm.dorm_id !== dormId);
+    },
+    handleJoinDorm(dorm) {
+      // 这里只添加前端功能，不实现后端逻辑
+      alert(`您点击了加入宿舍：${dorm.dorm_name}。实际功能尚未实现。`);
     }
   },
   mounted() {

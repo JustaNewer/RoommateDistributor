@@ -13,16 +13,23 @@
         </div>
         <div class="action-buttons">
           <button 
+            class="join-btn" 
+            @click.stop="$emit('join-dorm', dorm)"
+            v-if="inSearchResults || (!inSearchResults && !canDelete)"
+          >
+            加入
+          </button>
+          <button 
             class="edit-btn" 
             @click.stop="$emit('edit-dorm', dorm)"
-            v-if="canDelete"
+            v-if="!inSearchResults && canDelete"
           >
             编辑
           </button>
           <button 
             class="delete-btn" 
             @click.stop="showConfirmDialog = true"
-            v-if="canDelete"
+            v-if="!inSearchResults && canDelete"
           >
             删除
           </button>
@@ -79,6 +86,10 @@ export default {
     dorm: {
       type: Object,
       required: true
+    },
+    inSearchResults: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -199,6 +210,22 @@ export default {
 .action-buttons {
   display: flex;
   gap: 8px;
+}
+
+.join-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.join-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
 }
 
 .edit-btn {
