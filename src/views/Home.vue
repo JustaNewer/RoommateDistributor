@@ -133,7 +133,7 @@
         </div>
 
         <div class="button-wrapper">
-          <button class="action-btn joined-rooms-btn" @click="showJoinedRooms = true">
+          <button class="action-btn joined-rooms-btn" @click="$router.push('/joined-dorms')">
             <span class="btn-icon">🏠</span>
             我加入的宿舍
           </button>
@@ -191,7 +191,6 @@ export default {
       username: localStorage.getItem('username') || '用户',
       isDropdownVisible: false,
       showCreateRoomModal: false,
-      showJoinedRooms: false,
       showCreatedRooms: false,
       searchQuery: '',
       avatarUrl: null,

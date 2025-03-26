@@ -9,7 +9,8 @@
 
     <main class="detail-content">
       <div v-if="loading" class="loading-state">
-        加载中...
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
       </div>
 
       <template v-else>
@@ -30,20 +31,33 @@
             <span class="label">每层房间：</span>
             <span class="value">{{ dormData.rooms_per_floor }}间</span>
           </div>
+          <div class="info-item occupancy-legend">
+            <span class="legend-item">
+              <span class="bed-icon empty"></span>
+              <span>空床位</span>
+            </span>
+            <span class="legend-item">
+              <span class="bed-icon occupied"></span>
+              <span>已入住</span>
+            </span>
+          </div>
         </div>
 
         <div class="floors-container">
-          <div v-for="floor in reversedFloors" :key="floor" class="floor">
+          <div v-for="(rooms, floor) in roomsByFloor" :key="floor" class="floor">
             <h3 class="floor-title">{{ floor }}层</h3>
             <div class="rooms-container">
-              <div v-for="room in dormData.rooms_per_floor" :key="room" class="room">
-                <div class="room-number">{{ formatRoomNumber(floor, room) }}</div>
+              <div v-for="room in rooms" :key="room.room_id" class="room" :class="{'full': room.current_occupants === room.capacity}">
+                <div class="room-header">
+                  <div class="room-number">{{ room.room_number }}</div>
+                  <div class="occupancy-status">{{ room.current_occupants }}/{{ room.capacity }}</div>
+                </div>
                 <div class="beds-container">
                   <div 
-                    v-for="bed in dormData.space" 
+                    v-for="bed in room.capacity" 
                     :key="bed" 
                     class="bed"
-                    :class="{ 'occupied': isOccupied(floor, room, bed) }"
+                    :class="{ 'occupied': bed <= room.current_occupants }"
                   ></div>
                 </div>
               </div>
@@ -69,66 +83,52 @@ export default {
         floor_count: 0,
         rooms_per_floor: 0
       },
-      occupancyData: {}
+      roomsByFloor: {}
     }
   },
   computed: {
     reversedFloors() {
-      return Array.from(
-        { length: this.dormData.floor_count }, 
-        (_, i) => this.dormData.floor_count - i
-      );
+      return Object.keys(this.roomsByFloor)
+        .map(Number)
+        .sort((a, b) => b - a); // 降序，顶楼在上
     }
   },
   methods: {
-    formatRoomNumber(floor, room) {
-      return `${floor}${String(room).padStart(2, '0')}`;
-    },
-    isOccupied(floor, room, bed) {
-      const roomKey = `${floor}-${room}`;
-      return this.occupancyData[roomKey]?.includes(bed) || false;
-    },
-    async fetchDormData() {
+    async fetchRoomStatus() {
       try {
         const dormId = this.$route.params.id;
-        const response = await fetch(`http://localhost:3000/api/dorm/${dormId}`);
+        const response = await fetch(`http://localhost:3000/api/dorm/room-status/${dormId}`);
         const data = await response.json();
         
         if (response.ok) {
-          this.dormData = data.data;
+          this.dormData = data.data.dorm_info;
+          this.roomsByFloor = data.data.rooms_by_floor;
         } else {
-          console.error('获取宿舍信息失败:', data.message);
+          console.error('获取宿舍房间状态失败:', data.message);
+          this.$notify({
+            type: 'error',
+            title: '获取失败',
+            message: data.message || '获取房间状态失败'
+          });
         }
       } catch (error) {
-        console.error('获取宿舍信息错误:', error);
+        console.error('获取宿舍房间状态错误:', error);
+        this.$notify({
+          type: 'error',
+          title: '系统错误',
+          message: '网络错误，请稍后重试'
+        });
+      } finally {
+        this.loading = false;
       }
     },
-    async fetchOccupancyData() {
-      try {
-        const dormId = this.$route.params.id;
-        const response = await fetch(`http://localhost:3000/api/dorm/occupancy/${dormId}`);
-        const data = await response.json();
-        
-        if (response.ok) {
-          this.occupancyData = data.data.occupancy || {};
-        } else {
-          console.error('获取入住数据失败:', data.message);
-        }
-      } catch (error) {
-        console.error('获取入住数据错误:', error);
-      }
-    },
-    async loadAllData() {
+    async loadData() {
       this.loading = true;
-      await Promise.all([
-        this.fetchDormData(),
-        this.fetchOccupancyData()
-      ]);
-      this.loading = false;
+      await this.fetchRoomStatus();
     }
   },
   mounted() {
-    this.loadAllData();
+    this.loadData();
   }
 }
 </script>
@@ -173,9 +173,26 @@ export default {
 }
 
 .loading-state {
-  text-align: center;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
   color: #888;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #4CAF50;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .dorm-info {
@@ -192,6 +209,37 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.occupancy-legend {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.bed-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.bed-icon.empty {
+  background-color: #333;
+  border: 1px solid #444;
+}
+
+.bed-icon.occupied {
+  background-color: #4CAF50;
+  border: 1px solid #45a049;
 }
 
 .label {
@@ -235,32 +283,79 @@ export default {
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid #3a3a3a;
+  transition: all 0.3s ease;
+}
+
+.room:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.room.full {
+  border-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .room-number {
   color: #888;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.occupancy-status {
+  color: #4CAF50;
   font-size: 0.9rem;
-  margin-bottom: 0.8rem;
-  text-align: center;
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
 }
 
 .beds-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.5rem;
-  padding: 0.5rem;
 }
 
 .bed {
   aspect-ratio: 1;
-  background-color: #000000;
+  background-color: #333;
   border-radius: 4px;
   transition: all 0.3s ease;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #444;
 }
 
 .bed.occupied {
   background-color: #4CAF50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  border-color: #45a049;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+@media (max-width: 768px) {
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .detail-content {
+    padding: 0 1rem;
+  }
+  
+  .rooms-container {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+  
+  .dorm-info {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 

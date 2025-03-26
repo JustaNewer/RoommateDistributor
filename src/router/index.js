@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Profile from '../views/Profile.vue'
 import CreatedDorms from '../views/CreatedDorms.vue'
+import JoinedDorms from '../views/JoinedDorms.vue'
 import PersonalityTest from '../views/PersonalityTest.vue'
 import DormDetail from '../views/DormDetail.vue'
 import SearchResults from '../views/SearchResults.vue'
@@ -30,6 +31,12 @@ const routes = [
         path: '/created-dorms',
         name: 'CreatedDorms',
         component: CreatedDorms,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/joined-dorms',
+        name: 'JoinedDorms',
+        component: JoinedDorms,
         meta: { requiresAuth: true }
     },
     {

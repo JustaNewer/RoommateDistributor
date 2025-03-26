@@ -5,21 +5,40 @@
       <button class="back-btn" @click="$router.push('/')">返回首页</button>
     </header>
 
-    <div class="dorms-container" v-if="dorms.length > 0">
-      <DormCard 
-        v-for="dorm in dorms" 
-        :key="dorm.dorm_id" 
-        :dorm="dorm"
-        class="dorm-card-item"
-        @dorm-deleted="handleDormDeleted"
-        @edit-dorm="openEditModal"
-        @manage-applications="handleManageApplications"
-      />
-    </div>
+    <div class="created-dorms-container">
+      <div class="instruction-box">
+        <div class="instruction-icon">💡</div>
+        <div class="instruction-content">
+          <h3>智能分配舍友</h3>
+          <p>系统将根据申请用户的性格标签，自动分析并推荐最佳的舍友组合，帮助你快速分配舍友。点击"智能分配舍友"按钮开始自动匹配过程。</p>
+        </div>
+      </div>
 
-    <div class="empty-state" v-else>
-      <p>暂无创建的宿舍</p>
-      <button class="create-btn" @click="$router.push('/')">创建宿舍</button>
+      <div class="dorms-container" v-if="dorms.length > 0">
+        <DormCard 
+          v-for="dorm in dorms" 
+          :key="dorm.dorm_id" 
+          :dorm="dorm"
+          class="dorm-card-item"
+          @dorm-deleted="handleDormDeleted"
+          @edit-dorm="openEditModal"
+          @manage-applications="handleManageApplications"
+        >
+          <div class="dorm-actions">
+            <button class="action-btn btn-applications" @click.stop="showApplications(dorm)">
+              申请管理
+            </button>
+            <button class="action-btn btn-rooms" @click.stop="handleViewRooms()">
+              房间概况
+            </button>
+          </div>
+        </DormCard>
+      </div>
+
+      <div class="empty-state" v-else>
+        <p>暂无创建的宿舍</p>
+        <button class="create-btn" @click="$router.push('/')">创建宿舍</button>
+      </div>
     </div>
 
     <!-- 编辑宿舍模态窗口 -->
@@ -116,6 +135,18 @@
             暂无待处理的申请
           </div>
           <div v-else class="applications-list">
+            <div class="top-actions">
+              <div class="applications-header" v-if="applications.length > 0">
+                <div class="applications-count">{{ applications.length }} 个待处理申请</div>
+                <button class="assign-roommates-btn" @click="handleAssignRoommates()">
+                  <i class="btn-icon">⚙️</i> 智能分配舍友
+                </button>
+                <button class="view-rooms-btn" @click="handleViewRooms()">
+                  <i class="btn-icon">🏠</i> 查看房间
+                </button>
+              </div>
+            </div>
+
             <div class="application-item" v-for="app in applications" :key="app.application_id">
               <div class="user-info">
                 <img :src="app.avatar_url || '/default-avatar.png'" class="user-avatar" :alt="app.username">
@@ -123,7 +154,7 @@
                   <h4>{{ app.username }}</h4>
                   <div class="user-tags" v-if="app.user_tags">
                     <span v-for="(tag, index) in formatTags(app.user_tags)" :key="index" class="tag">
-                      {{ tag }}
+                      #{{ tag }}
                     </span>
                   </div>
                   <div class="application-time">
@@ -132,12 +163,93 @@
                 </div>
               </div>
               <div class="application-actions">
-                <button class="approve-btn" @click="handleApplicationAction(app.application_id, 'approved')">
-                  通过
-                </button>
                 <button class="reject-btn" @click="handleApplicationAction(app.application_id, 'rejected')">
-                  拒绝
+                  <i class="icon">✕</i> 拒绝申请
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分配结果模态窗口 -->
+    <div class="modal-overlay" v-if="showAssignmentResults" @click="closeAssignmentResults">
+      <div class="modal-content assignment-results" @click.stop>
+        <div class="modal-header">
+          <h3>舍友分配结果</h3>
+          <button class="close-btn" @click="closeAssignmentResults">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="Object.keys(roomAssignments).length === 0" class="empty-assignment-results">
+            暂无分配结果
+          </div>
+          <div v-else class="assignment-results-list">
+            <div class="assignment-result-summary">
+              <div class="result-icon">✓</div>
+              <div class="result-text">
+                <h4>智能分配完成</h4>
+                <p>已根据用户个性标签完成舍友智能分配</p>
+              </div>
+            </div>
+            
+            <div v-for="(userIds, roomId) in roomAssignments" :key="roomId" class="room-assignment-card">
+              <div class="room-header">
+                <span class="room-number">{{ getRoomNumber(roomId) }}</span>
+                <span class="occupants-count">{{ userIds.length }}人</span>
+              </div>
+              
+              <div class="user-list">
+                <div v-for="userId in userIds" :key="userId" class="user-item">
+                  <div class="user-avatar">{{ getUsernameById(userId).charAt(0) }}</div>
+                  <div class="user-details">
+                    <span class="user-name">{{ getUsernameById(userId) }}</span>
+                    <span class="user-tags">{{ getUserTagsById(userId) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 房间居住情况模态窗口 -->
+    <div class="modal-overlay" v-if="showRoomOccupants" @click="closeRoomOccupants">
+      <div class="modal-content room-occupants" @click.stop>
+        <div class="modal-header">
+          <h3>房间居住情况 - {{ currentDorm ? currentDorm.dorm_name : '' }}</h3>
+          <button class="close-btn" @click="closeRoomOccupants">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="loadingRoomOccupants" class="loading-room-occupants">
+            正在加载房间信息...
+          </div>
+          <div v-else-if="roomOccupants.length === 0" class="empty-room-occupants">
+            暂无房间信息
+          </div>
+          <div v-else class="room-occupants-list">
+            <div class="room-occupant-item" v-for="room in roomOccupants" :key="room.room_id">
+              <div class="room-info">
+                <span class="room-number">房间 {{ room.room_number }}</span>
+                <span class="occupants-count">{{ room.occupants.length }}人</span>
+              </div>
+              <div class="occupants-list">
+                <div v-if="room.occupants.length === 0" class="empty-occupants">
+                  暂无入住人员
+                </div>
+                <div 
+                  v-else 
+                  class="occupant-item" 
+                  v-for="occupant in room.occupants" 
+                  :key="occupant.user_id"
+                >
+                  <div class="user-avatar">{{ occupant.username.charAt(0) }}</div>
+                  <div class="user-details">
+                    <span class="user-name">{{ occupant.username }}</span>
+                    <span class="user-tags">{{ occupant.user_tags || '无标签' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -174,7 +286,14 @@ export default {
         roomsPerFloor: 1,
         originalSpace: 2,
         originalRoomsPerFloor: 1
-      }
+      },
+      roomAssignments: {},
+      showAssignmentResults: false,
+      roomData: [],
+      loadingAssignmentResults: false,
+      showRoomOccupants: false,
+      roomOccupants: [],
+      loadingRoomOccupants: false
     }
   },
   methods: {
@@ -277,7 +396,23 @@ export default {
       this.showApplicationsModal = true;
       this.fetchApplications(dorm.dorm_id);
     },
+    async fetchRooms(dormId) {
+      try {
+        const response = await fetch(`http://localhost:3000/api/dorm/rooms?dormId=${dormId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          this.roomData = data.rooms || [];
+        } else {
+          console.error('获取房间信息失败:', data.message);
+        }
+      } catch (error) {
+        console.error('获取房间错误:', error);
+      }
+    },
     async fetchApplications(dormId) {
+      if (!dormId) return;
+      
       try {
         this.loadingApplications = true;
         const userId = localStorage.getItem('userId');
@@ -296,6 +431,9 @@ export default {
           console.error('获取申请列表失败:', data.message);
           this.showToast(data.message || '获取申请列表失败');
         }
+        
+        // 同时获取宿舍房间信息
+        await this.fetchRooms(dormId);
       } catch (error) {
         console.error('获取申请列表错误:', error);
         this.showToast('获取申请列表失败，请稍后重试');
@@ -340,7 +478,9 @@ export default {
     },
     formatTags(tagsString) {
       if (!tagsString) return [];
-      return tagsString.split(' ').filter(tag => tag.trim() !== '');
+      return tagsString.split(' ')
+        .filter(tag => tag.trim() !== '')
+        .map(tag => tag.startsWith('#') ? tag.substring(1) : tag);
     },
     formatDate(dateString) {
       const date = new Date(dateString);
@@ -366,6 +506,88 @@ export default {
       setTimeout(() => {
         this.showSuccessToast = false;
       }, 3000);
+    },
+    async handleAssignRoommates() {
+      try {
+        if (this.applications.length === 0) {
+          this.showToast('没有待处理的申请');
+          return;
+        }
+        
+        this.showToast('正在智能分配舍友...');
+        
+        const userId = localStorage.getItem('userId');
+        const response = await fetch('http://localhost:3000/api/dorm/assign-roommates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dormId: this.currentDorm.dorm_id,
+            userId: userId
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // 存储分配结果
+          this.roomAssignments = data.data.roomAssignments;
+          this.showAssignmentResults = true;
+          this.showToast('舍友分配成功！');
+          // 刷新申请列表
+          this.fetchApplications(this.currentDorm.dorm_id);
+        } else {
+          this.showToast(data.message || '舍友分配失败，请重试');
+        }
+      } catch (error) {
+        console.error('分配舍友错误:', error);
+        this.showToast('舍友分配失败，请稍后重试');
+      }
+    },
+    closeAssignmentResults() {
+      this.showAssignmentResults = false;
+    },
+    getRoomNumber(roomId) {
+      const room = this.roomData.find(r => r.room_id === Number(roomId));
+      return room ? room.room_number : `房间 ${roomId}`;
+    },
+    getUsernameById(userId) {
+      // 从申请列表中查找用户名
+      const application = this.applications.find(app => app.user_id === Number(userId));
+      return application ? application.username : `用户 ${userId}`;
+    },
+    getUserTagsById(userId) {
+      // 从申请列表中查找用户标签
+      const application = this.applications.find(app => app.user_id === Number(userId));
+      return application ? application.user_tags : '无标签';
+    },
+    async handleViewRooms() {
+      try {
+        const dormId = this.currentDorm.dorm_id;
+        if (!dormId) {
+          this.showToast('请先选择宿舍');
+          return;
+        }
+        
+        this.showToast('正在获取房间信息...');
+        
+        const response = await fetch(`http://localhost:3000/api/dorm/room-occupants?dormId=${dormId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          this.roomOccupants = data.roomOccupants || [];
+          this.showRoomOccupants = true;
+        } else {
+          this.showToast(data.message || '获取房间信息失败');
+        }
+      } catch (error) {
+        console.error('获取房间信息错误:', error);
+        this.showToast('获取房间信息失败，请稍后重试');
+      }
+    },
+    closeRoomOccupants() {
+      this.showRoomOccupants = false;
     }
   },
   mounted() {
@@ -623,13 +845,75 @@ export default {
   gap: 1rem;
 }
 
+.top-actions {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.applications-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.applications-count {
+  font-size: 0.9rem;
+  color: #aaa;
+  text-align: center;
+}
+
+.btn-icon {
+  margin-right: 0.5rem;
+}
+
+.assign-roommates-btn, .view-rooms-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.assign-roommates-btn:hover, .view-rooms-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.view-rooms-btn {
+  background-color: #2196F3;
+  margin-left: 1rem;
+}
+
+.view-rooms-btn:hover {
+  background-color: #1976D2;
+}
+
 .application-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 1.2rem;
   background-color: #1a1a1a;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  transition: all 0.2s;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.application-item:hover {
+  border-color: #3a3a3a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 .user-info {
@@ -639,36 +923,32 @@ export default {
 }
 
 .user-avatar {
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  object-fit: cover;
-  background-color: #3a3a3a;
+  background-color: #4CAF50;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 0.8rem;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
-.user-details h4 {
-  margin: 0;
+.user-name {
+  font-size: 0.9rem;
   color: #fff;
 }
 
 .user-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.tag {
-  background-color: #3a3a3a;
-  color: #4CAF50;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
   font-size: 0.8rem;
+  color: #aaa;
 }
 
 .application-time {
@@ -681,32 +961,269 @@ export default {
   gap: 0.5rem;
 }
 
-.approve-btn,
 .reject-btn {
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
   transition: all 0.2s;
-}
-
-.approve-btn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.approve-btn:hover {
-  background-color: #45a049;
-}
-
-.reject-btn {
   background-color: #dc3545;
   color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .reject-btn:hover {
   background-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.reject-btn .icon {
+  font-size: 0.9rem;
+}
+
+/* 分配结果模态窗口样式 */
+.assignment-results {
+  max-width: 600px;
+}
+
+.empty-assignment-results {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+
+.assignment-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.assignment-result-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 1rem;
+}
+
+.result-icon {
+  font-size: 2rem;
+  color: #4CAF50;
+  margin-right: 1rem;
+}
+
+.result-text {
+  text-align: center;
+}
+
+.result-text h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.result-text p {
+  margin: 0;
+  color: #888;
+  font-size: 1rem;
+}
+
+.room-assignment-card {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.room-number {
+  font-size: 1rem;
+  color: #fff;
+}
+
+.occupants-count {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.user-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 0.8rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.user-tags {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* 房间居住情况模态窗口样式 */
+.room-occupants {
+  max-width: 600px;
+}
+
+.loading-room-occupants,
+.empty-room-occupants {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+
+.room-occupants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.room-occupant-item {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.room-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.room-number {
+  font-size: 1rem;
+  color: #fff;
+}
+
+.occupants-count {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.occupants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.occupant-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 0.8rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.user-tags {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.empty-occupants {
+  padding: 1rem;
+  color: #888;
+  font-style: italic;
+}
+
+.instruction-box {
+  background-color: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.instruction-icon {
+  font-size: 2rem;
+  color: #2196F3;
+}
+
+.instruction-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2196F3;
+  font-size: 1.2rem;
+}
+
+.instruction-content p {
+  margin: 0;
+  color: #bbb;
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {
