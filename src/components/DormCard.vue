@@ -20,6 +20,13 @@
             加入
           </button>
           <button 
+            class="manage-applications-btn" 
+            @click.stop="$emit('manage-applications', dorm)"
+            v-if="!inSearchResults && canDelete"
+          >
+            申请管理
+          </button>
+          <button 
             class="edit-btn" 
             @click.stop="$emit('edit-dorm', dorm)"
             v-if="!inSearchResults && canDelete"
@@ -224,6 +231,22 @@ export default {
 }
 
 .join-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.manage-applications-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.manage-applications-btn:hover {
   background-color: #45a049;
   transform: translateY(-1px);
 }

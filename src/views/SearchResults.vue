@@ -82,9 +82,57 @@ export default {
       // 从列表中移除被删除的宿舍
       this.dorms = this.dorms.filter(dorm => dorm.dorm_id !== dormId);
     },
-    handleJoinDorm(dorm) {
-      // 这里只添加前端功能，不实现后端逻辑
-      alert(`您点击了加入宿舍：${dorm.dorm_name}。实际功能尚未实现。`);
+    async handleJoinDorm(dorm) {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          alert('请先登录');
+          this.$router.push('/login');
+          return;
+        }
+
+        // 获取申请状态
+        const statusResponse = await fetch(`http://localhost:3000/api/dorm/application-status?userId=${userId}&dormId=${dorm.dorm_id}`);
+        const statusData = await statusResponse.json();
+
+        if (statusResponse.ok && statusData.success) {
+          // 检查是否已经申请过
+          if (statusData.data.hasApplied) {
+            const status = statusData.data.status;
+            if (status === 'pending') {
+              alert('您已经提交过申请，请等待管理员审核');
+            } else if (status === 'approved') {
+              alert('您的申请已被批准，已经是宿舍成员');
+            } else if (status === 'rejected') {
+              alert('您的申请已被拒绝，如需重新申请请联系宿舍管理员');
+            }
+            return;
+          }
+        }
+
+        // 提交申请
+        const response = await fetch('http://localhost:3000/api/dorm/apply', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dormId: dorm.dorm_id,
+            userId: userId
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('申请已提交，等待宿舍管理员审核');
+        } else {
+          alert(data.message || '申请失败，请稍后重试');
+        }
+      } catch (error) {
+        console.error('申请加入宿舍错误:', error);
+        alert('申请失败，请稍后重试');
+      }
     }
   },
   mounted() {

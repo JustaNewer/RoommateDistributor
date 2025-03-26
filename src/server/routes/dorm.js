@@ -579,4 +579,291 @@ router.put('/update/:dormId', async (req, res) => {
     }
 });
 
+// 用户申请加入宿舍
+router.post('/apply', async (req, res) => {
+    try {
+        const { dormId, userId } = req.body;
+
+        // 验证必要字段
+        if (!dormId || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: '请提供宿舍ID和用户ID'
+            });
+        }
+
+        // 检查宿舍是否存在
+        const [dorms] = await db.execute(
+            'SELECT * FROM Dorms WHERE dorm_id = ?',
+            [dormId]
+        );
+
+        if (dorms.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '宿舍不存在'
+            });
+        }
+
+        // 检查用户是否存在
+        const [users] = await db.execute(
+            'SELECT * FROM Users WHERE user_id = ?',
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '用户不存在'
+            });
+        }
+
+        // 检查是否是宿舍创建者
+        if (dorms[0].creator_user_id === Number(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: '您是宿舍创建者，无需申请加入'
+            });
+        }
+
+        // 检查是否已经申请过
+        const [existingApplications] = await db.execute(
+            'SELECT * FROM DormApplication WHERE dorm_id = ? AND user_id = ? AND application_status = "pending"',
+            [dormId, userId]
+        );
+
+        if (existingApplications.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: '您已经提交过申请，请等待处理'
+            });
+        }
+
+        // 获取用户信息
+        const user = users[0];
+        const username = user.username;
+        const userTags = user.user_tags || null;
+        const avatarUrl = user.avatar_url || null;
+
+        // 插入申请记录
+        const [result] = await db.execute(
+            'INSERT INTO DormApplication (dorm_id, user_id, username, user_tags, avatar_url, application_status) VALUES (?, ?, ?, ?, ?, "pending")',
+            [dormId, userId, username, userTags, avatarUrl]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: '申请已提交，等待宿舍管理员审核',
+            data: {
+                applicationId: result.insertId
+            }
+        });
+    } catch (error) {
+        console.error('提交申请错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 获取宿舍申请列表（宿舍创建者使用）
+router.get('/applications/:dormId', async (req, res) => {
+    try {
+        const { dormId } = req.params;
+        const { userId } = req.query; // 当前登录用户ID，用于验证权限
+
+        // 验证权限（检查当前用户是否是宿舍创建者）
+        const [dorms] = await db.execute(
+            'SELECT creator_user_id FROM Dorms WHERE dorm_id = ?',
+            [dormId]
+        );
+
+        if (dorms.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '宿舍不存在'
+            });
+        }
+
+        // 验证当前用户是否是宿舍创建者
+        if (dorms[0].creator_user_id !== Number(userId)) {
+            return res.status(403).json({
+                success: false,
+                message: '您没有权限查看此宿舍的申请列表'
+            });
+        }
+
+        // 获取待处理的申请列表
+        const [applications] = await db.execute(
+            `SELECT 
+                a.application_id,
+                a.user_id,
+                a.username,
+                a.user_tags,
+                a.avatar_url,
+                a.application_status,
+                a.application_time
+             FROM DormApplication a
+             WHERE a.dorm_id = ? AND a.application_status = 'pending'
+             ORDER BY a.application_time DESC`,
+            [dormId]
+        );
+
+        res.json({
+            success: true,
+            data: applications
+        });
+    } catch (error) {
+        console.error('获取申请列表错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 处理宿舍申请（批准或拒绝）
+router.put('/application/:applicationId', async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        const { status, userId } = req.body; // status: 'approved' 或 'rejected'
+
+        // 验证状态值
+        if (status !== 'approved' && status !== 'rejected') {
+            return res.status(400).json({
+                success: false,
+                message: '无效的状态值，必须是 approved 或 rejected'
+            });
+        }
+
+        // 获取申请信息
+        const [applications] = await db.execute(
+            'SELECT * FROM DormApplication WHERE application_id = ?',
+            [applicationId]
+        );
+
+        if (applications.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '申请不存在'
+            });
+        }
+
+        const application = applications[0];
+
+        // 验证权限（检查当前用户是否是宿舍创建者）
+        const [dorms] = await db.execute(
+            'SELECT creator_user_id FROM Dorms WHERE dorm_id = ?',
+            [application.dorm_id]
+        );
+
+        if (dorms.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '宿舍不存在'
+            });
+        }
+
+        // 验证当前用户是否是宿舍创建者
+        if (dorms[0].creator_user_id !== Number(userId)) {
+            return res.status(403).json({
+                success: false,
+                message: '您没有权限处理此申请'
+            });
+        }
+
+        // 开始数据库事务
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 更新申请状态
+            await connection.execute(
+                'UPDATE DormApplication SET application_status = ? WHERE application_id = ?',
+                [status, applicationId]
+            );
+
+            // 如果批准申请，将用户与宿舍关联
+            if (status === 'approved') {
+                // 在此处可以添加逻辑，如将用户分配到宿舍的某个房间
+                // 例如，可以新建DormMembers表来记录宿舍成员
+                // 这部分逻辑根据实际需求实现
+            }
+
+            // 提交事务
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: status === 'approved' ? '申请已批准' : '申请已拒绝'
+            });
+        } catch (error) {
+            // 回滚事务
+            await connection.rollback();
+            throw error;
+        } finally {
+            // 释放连接
+            connection.release();
+        }
+    } catch (error) {
+        console.error('处理申请错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 获取用户的申请状态
+router.get('/application-status', async (req, res) => {
+    try {
+        const { userId, dormId } = req.query;
+
+        if (!userId || !dormId) {
+            return res.status(400).json({
+                success: false,
+                message: '请提供用户ID和宿舍ID'
+            });
+        }
+
+        // 获取用户对特定宿舍的最新申请状态
+        const [applications] = await db.execute(
+            `SELECT 
+                application_id,
+                application_status,
+                application_time
+             FROM DormApplication 
+             WHERE user_id = ? AND dorm_id = ?
+             ORDER BY application_time DESC
+             LIMIT 1`,
+            [userId, dormId]
+        );
+
+        if (applications.length === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    hasApplied: false
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                hasApplied: true,
+                status: applications[0].application_status,
+                applicationTime: applications[0].application_time
+            }
+        });
+    } catch (error) {
+        console.error('获取申请状态错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
 module.exports = router;

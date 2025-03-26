@@ -13,6 +13,7 @@
         class="dorm-card-item"
         @dorm-deleted="handleDormDeleted"
         @edit-dorm="openEditModal"
+        @manage-applications="handleManageApplications"
       />
     </div>
 
@@ -99,6 +100,50 @@
     <div class="success-toast" v-if="showSuccessToast">
       {{ successMessage }}
     </div>
+
+    <!-- 申请管理模态窗口 -->
+    <div class="modal-overlay" v-if="showApplicationsModal" @click="showApplicationsModal = false">
+      <div class="modal-content applications-modal" @click.stop>
+        <div class="modal-header">
+          <h3>申请管理 - {{ currentDorm ? currentDorm.dorm_name : '' }}</h3>
+          <button class="close-btn" @click="showApplicationsModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="loadingApplications" class="loading-applications">
+            正在加载申请列表...
+          </div>
+          <div v-else-if="applications.length === 0" class="empty-applications">
+            暂无待处理的申请
+          </div>
+          <div v-else class="applications-list">
+            <div class="application-item" v-for="app in applications" :key="app.application_id">
+              <div class="user-info">
+                <img :src="app.avatar_url || '/default-avatar.png'" class="user-avatar" :alt="app.username">
+                <div class="user-details">
+                  <h4>{{ app.username }}</h4>
+                  <div class="user-tags" v-if="app.user_tags">
+                    <span v-for="(tag, index) in formatTags(app.user_tags)" :key="index" class="tag">
+                      {{ tag }}
+                    </span>
+                  </div>
+                  <div class="application-time">
+                    申请时间: {{ formatDate(app.application_time) }}
+                  </div>
+                </div>
+              </div>
+              <div class="application-actions">
+                <button class="approve-btn" @click="handleApplicationAction(app.application_id, 'approved')">
+                  通过
+                </button>
+                <button class="reject-btn" @click="handleApplicationAction(app.application_id, 'rejected')">
+                  拒绝
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -114,8 +159,12 @@ export default {
     return {
       dorms: [],
       showEditModal: false,
+      showApplicationsModal: false,
       showSuccessToast: false,
       successMessage: '',
+      currentDorm: null,
+      applications: [],
+      loadingApplications: false,
       editForm: {
         dormId: null,
         dormName: '',
@@ -222,6 +271,86 @@ export default {
         console.error('更新宿舍错误:', error);
         this.showToast('网络错误，请稍后重试');
       }
+    },
+    handleManageApplications(dorm) {
+      this.currentDorm = dorm;
+      this.showApplicationsModal = true;
+      this.fetchApplications(dorm.dorm_id);
+    },
+    async fetchApplications(dormId) {
+      try {
+        this.loadingApplications = true;
+        const userId = localStorage.getItem('userId');
+        
+        if (!userId) {
+          this.$router.push('/login');
+          return;
+        }
+        
+        const response = await fetch(`http://localhost:3000/api/dorm/applications/${dormId}?userId=${userId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          this.applications = data.data;
+        } else {
+          console.error('获取申请列表失败:', data.message);
+          this.showToast(data.message || '获取申请列表失败');
+        }
+      } catch (error) {
+        console.error('获取申请列表错误:', error);
+        this.showToast('获取申请列表失败，请稍后重试');
+      } finally {
+        this.loadingApplications = false;
+      }
+    },
+    async handleApplicationAction(applicationId, status) {
+      try {
+        const userId = localStorage.getItem('userId');
+        
+        if (!userId) {
+          this.$router.push('/login');
+          return;
+        }
+        
+        const response = await fetch(`http://localhost:3000/api/dorm/application/${applicationId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status,
+            userId
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // 移除已处理的申请
+          this.applications = this.applications.filter(app => app.application_id !== applicationId);
+          this.showToast(status === 'approved' ? '已通过申请' : '已拒绝申请');
+        } else {
+          console.error('处理申请失败:', data.message);
+          this.showToast(data.message || '处理申请失败');
+        }
+      } catch (error) {
+        console.error('处理申请错误:', error);
+        this.showToast('处理申请失败，请稍后重试');
+      }
+    },
+    formatTags(tagsString) {
+      if (!tagsString) return [];
+      return tagsString.split(' ').filter(tag => tag.trim() !== '');
+    },
+    formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     },
     showToast(message) {
       this.successMessage = message;
@@ -474,6 +603,110 @@ export default {
   border-radius: 6px;
   z-index: 2000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 申请管理模态窗口样式 */
+.applications-modal {
+  max-width: 600px;
+}
+
+.loading-applications,
+.empty-applications {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+
+.applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.application-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+}
+
+.user-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #3a3a3a;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-details h4 {
+  margin: 0;
+  color: #fff;
+}
+
+.user-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #3a3a3a;
+  color: #4CAF50;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.application-time {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.application-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.approve-btn,
+.reject-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.approve-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.approve-btn:hover {
+  background-color: #45a049;
+}
+
+.reject-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.reject-btn:hover {
+  background-color: #c82333;
 }
 
 @media (max-width: 768px) {
