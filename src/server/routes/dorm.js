@@ -329,6 +329,66 @@ router.get('/room-status/:dormId', async (req, res) => {
     }
 });
 
+// 获取房间入住用户信息
+router.get('/room-occupants/:roomId', async (req, res) => {
+    try {
+        const { roomId } = req.params;
+
+        // 获取房间信息以确定总床位数
+        const [roomInfo] = await db.execute(
+            `SELECT capacity FROM Rooms WHERE room_id = ?`,
+            [roomId]
+        );
+
+        if (roomInfo.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '房间不存在'
+            });
+        }
+
+        // 获取房间入住用户信息
+        const [occupants] = await db.execute(
+            `SELECT 
+                do.user_id,
+                u.username,
+                u.avatar_url
+             FROM DormOccupants do
+             JOIN Users u ON do.user_id = u.user_id
+             WHERE do.room_id = ?`,
+            [roomId]
+        );
+
+        const capacity = roomInfo[0].capacity;
+        const occupantsByPosition = Array(capacity).fill(null);
+
+        // 由于没有床位位置信息，简单地将用户按顺序分配到床位
+        occupants.forEach((occupant, index) => {
+            if (index < capacity) {
+                occupantsByPosition[index] = {
+                    user_id: occupant.user_id,
+                    username: occupant.username,
+                    avatar_url: occupant.avatar_url
+                };
+            }
+        });
+
+        res.json({
+            success: true,
+            data: {
+                capacity: capacity,
+                occupants: occupantsByPosition
+            }
+        });
+    } catch (error) {
+        console.error('获取房间入住用户信息错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
 // 删除宿舍
 router.delete('/:dormId', async (req, res) => {
     try {

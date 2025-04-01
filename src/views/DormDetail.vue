@@ -58,6 +58,8 @@
                     :key="bed" 
                     class="bed"
                     :class="{ 'occupied': bed <= room.current_occupants }"
+                    @mouseenter="bed <= room.current_occupants && fetchBedOccupant(room.room_id, bed - 1)"
+                    @mouseleave="hideUserTooltip"
                   ></div>
                 </div>
               </div>
@@ -66,6 +68,20 @@
         </div>
       </template>
     </main>
+
+    <!-- User tooltip -->
+    <div class="user-tooltip" v-if="showTooltip" :style="tooltipPosition">
+      <div v-if="loadingTooltip" class="tooltip-loading">加载中...</div>
+      <div v-else class="tooltip-content">
+        <div class="tooltip-avatar">
+          <img v-if="tooltipUser.avatar_url" :src="tooltipUser.avatar_url" alt="Avatar">
+          <div v-else class="default-avatar">{{ tooltipUser.username ? tooltipUser.username.charAt(0).toUpperCase() : 'U' }}</div>
+        </div>
+        <div class="tooltip-info">
+          <div class="tooltip-username">{{ tooltipUser.username || '未知用户' }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -83,7 +99,15 @@ export default {
         floor_count: 0,
         rooms_per_floor: 0
       },
-      roomsByFloor: {}
+      roomsByFloor: {},
+      showTooltip: false,
+      tooltipPosition: {
+        top: '0px',
+        left: '0px'
+      },
+      tooltipUser: {},
+      loadingTooltip: false,
+      roomOccupantsCache: {}  // 缓存房间用户信息
     }
   },
   computed: {
@@ -125,6 +149,53 @@ export default {
     async loadData() {
       this.loading = true;
       await this.fetchRoomStatus();
+    },
+    async fetchBedOccupant(roomId, bedIndex) {
+      try {
+        this.loadingTooltip = true;
+        this.tooltipUser = {};
+        
+        // 计算tooltip位置（基于鼠标事件）
+        this.tooltipPosition = {
+          top: `${event.clientY + 10}px`,
+          left: `${event.clientX + 10}px`
+        };
+        this.showTooltip = true;
+        
+        // 如果缓存中已有该房间数据，直接使用
+        if (this.roomOccupantsCache[roomId]) {
+          const occupantsData = this.roomOccupantsCache[roomId];
+          // 获取对应床位的用户（如果存在）
+          if (occupantsData.occupants && occupantsData.occupants[bedIndex]) {
+            this.tooltipUser = occupantsData.occupants[bedIndex];
+          }
+          this.loadingTooltip = false;
+          return;
+        }
+        
+        // 否则从服务器获取
+        const response = await fetch(`http://localhost:3000/api/dorm/room-occupants/${roomId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          // 缓存房间用户数据
+          this.roomOccupantsCache[roomId] = data.data;
+          
+          // 获取对应床位的用户（如果存在）
+          if (data.data.occupants && data.data.occupants[bedIndex]) {
+            this.tooltipUser = data.data.occupants[bedIndex];
+          }
+        } else {
+          console.error('获取用户信息失败:', data.message);
+        }
+      } catch (error) {
+        console.error('获取用户信息错误:', error);
+      } finally {
+        this.loadingTooltip = false;
+      }
+    },
+    hideUserTooltip() {
+      this.showTooltip = false;
     }
   },
   mounted() {
@@ -335,6 +406,94 @@ export default {
   background-color: #4CAF50;
   border-color: #45a049;
   box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  cursor: pointer;
+}
+
+.bed.occupied:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+}
+
+.user-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 200px;
+  min-width: 120px;
+  background: rgba(42, 42, 42, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 0.8rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  transform: translateY(5px);
+  opacity: 0.95;
+  animation: tooltip-fade-in 0.2s forwards;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-loading {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-align: center;
+}
+
+.tooltip-content {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.tooltip-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  border: 1px solid #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+.tooltip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.default-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4CAF50;
+  color: #fff;
+  font-weight: bold;
+}
+
+.tooltip-info {
+  flex: 1;
+}
+
+.tooltip-username {
+  font-size: 0.9rem;
+  color: #fff;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 768px) {

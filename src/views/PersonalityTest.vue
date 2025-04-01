@@ -186,11 +186,15 @@ export default {
         };
         this.messages.push(botMessage);
 
-        // 检查是否包含标签，如果包含则设置测试完成状态
+        // 检查消息是否是最终的标签总结（问卷结束消息）
         if (botResponse.includes('#')) {
           const tags = botResponse.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
-          if (tags.length > 0) {
-            console.log('检测到标签，设置测试完成状态:', tags);
+          // 确保至少有3个标签，且符合问卷结束的特征
+          if (tags.length >= 3 && 
+              (botResponse.includes('问卷结束') || 
+               botResponse.includes('谢谢您的配合') || 
+               botResponse.includes('感谢您的回答'))) {
+            console.log('检测到最终标签，设置测试完成状态:', tags);
             this.testCompleted = true;
             // 保存提取的标签
             this.extractedTags = tags;
