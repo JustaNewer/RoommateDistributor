@@ -85,7 +85,7 @@
                       'dragging': isDragging && draggedBed && draggedBed.roomId === room.room_id && draggedBed.bedIndex === bed - 1,
                       'drag-over': isDropTarget && dropTargetInfo.roomId === room.room_id && dropTargetInfo.bedIndex === bed - 1
                     }"
-                    @mouseenter="bed <= room.current_occupants && fetchBedOccupant(room.room_id, bed - 1)"
+                    @mouseenter="bed <= room.current_occupants && fetchBedOccupant(room.room_id, bed - 1, $event)"
                     @mouseleave="hideUserTooltip"
                     @mousedown="startDrag($event, room.room_id, bed - 1, bed <= room.current_occupants)"
                     @mouseup="handleDrop(room.room_id, bed - 1, bed <= room.current_occupants)"
@@ -280,51 +280,58 @@ export default {
       this.loading = true;
       await this.fetchRoomStatus();
     },
-    async fetchBedOccupant(roomId, bedIndex) {
+    async fetchBedOccupant(roomId, bedIndex, event) {
+      // 避免重复获取
+      if (this.loadingTooltip) return;
+      
       try {
         this.loadingTooltip = true;
         this.tooltipUser = {};
         
         // 计算tooltip位置（基于鼠标事件）
-        this.tooltipPosition = {
-          top: `${event.clientY + 10}px`,
-          left: `${event.clientX + 10}px`
-        };
+        if (event) {
+          this.tooltipPosition = {
+            top: `${event.clientY + 10}px`,
+            left: `${event.clientX + 10}px`
+          };
+        }
+        
         this.showTooltip = true;
         
         console.log(`获取床位用户信息 - 房间ID: ${roomId}, 床位索引: ${bedIndex}`);
         
-        // 如果缓存中已有该房间数据，直接使用
-        if (this.roomOccupantsCache[roomId]) {
-          console.log('从缓存中获取房间用户数据');
-          const occupantsData = this.roomOccupantsCache[roomId];
-          // 获取对应床位的用户（如果存在）
-          if (occupantsData.occupants && occupantsData.occupants[bedIndex]) {
-            this.tooltipUser = {...occupantsData.occupants[bedIndex]};
+        // 首先检查缓存
+        if (this.roomOccupantsCache[roomId] && 
+            this.roomOccupantsCache[roomId].occupants && 
+            this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+          
+          const occupant = this.roomOccupantsCache[roomId].occupants[bedIndex];
+          
+          // 检查是否是有效的用户（而不是空位占位符）
+          if (occupant.user_id) {
+            this.tooltipUser = {...occupant};
             console.log('从缓存中获取的用户数据:', this.tooltipUser);
             
-            // 检查用户标签
-            if (this.tooltipUser.user_tags) {
-              console.log('缓存中已有用户标签:', this.tooltipUser.user_tags);
-            } else {
+            // 需要标签并且缓存中没有，则获取标签
+            if (!this.tooltipUser.user_tags && this.tooltipUser.user_id) {
               console.log('缓存中没有用户标签，尝试获取');
-              // 如果没有用户标签，尝试单独获取
-              if (this.tooltipUser.user_id) {
-                await this.fetchUserTags(this.tooltipUser.user_id, roomId, bedIndex);
-              }
+              await this.fetchUserTags(this.tooltipUser.user_id, roomId, bedIndex);
+            } else if (this.tooltipUser.user_tags) {
+              console.log('缓存中已有用户标签:', this.tooltipUser.user_tags);
             }
+            
+            this.loadingTooltip = false;
+            return;
           }
-          this.loadingTooltip = false;
-          return;
         }
         
-        // 否则从服务器获取
+        // 如果没有缓存或缓存中无此用户，则请求API
         console.log('从服务器获取房间用户数据');
         const response = await fetch(`http://localhost:3000/api/dorm/room-occupants/${roomId}`);
         const data = await response.json();
         
         if (response.ok) {
-          // 缓存房间用户数据
+          // 更新缓存
           this.roomOccupantsCache[roomId] = data.data;
           
           // 获取对应床位的用户（如果存在）
@@ -342,12 +349,16 @@ export default {
                 await this.fetchUserTags(this.tooltipUser.user_id, roomId, bedIndex);
               }
             }
+          } else {
+            this.showTooltip = false;
           }
         } else {
           console.error('获取用户信息失败:', data.message);
+          this.showTooltip = false;
         }
       } catch (error) {
         console.error('获取用户信息错误:', error);
+        this.showTooltip = false;
       } finally {
         this.loadingTooltip = false;
         // 确保组件更新
@@ -508,9 +519,24 @@ export default {
       window.removeEventListener('mouseup', this.cancelDragStart);
       
       // 确保有用户信息
-      if (!this.roomOccupantsCache[roomId] || !this.roomOccupantsCache[roomId].occupants[bedIndex]) {
-        this.fetchBedOccupant(roomId, bedIndex).then(() => {
-          this.initiateDrag(roomId, bedIndex, event);
+      if (!this.roomOccupantsCache[roomId] || 
+          !this.roomOccupantsCache[roomId].occupants || 
+          !this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+        
+        // 先获取用户信息，再开始拖动
+        this.fetchBedOccupant(roomId, bedIndex, event).then(() => {
+          if (this.roomOccupantsCache[roomId] && 
+              this.roomOccupantsCache[roomId].occupants && 
+              this.roomOccupantsCache[roomId].occupants[bedIndex] &&
+              this.roomOccupantsCache[roomId].occupants[bedIndex].user_id) {
+            this.initiateDrag(roomId, bedIndex, event);
+          } else {
+            console.log('无法开始拖动：该床位没有住户');
+            this.statusMessage = '该床位没有住户，无法拖动';
+            setTimeout(() => {
+              this.statusMessage = '';
+            }, 2000);
+          }
         });
       } else {
         this.initiateDrag(roomId, bedIndex, event);
@@ -906,6 +932,22 @@ export default {
           }
         }, 3000);
       }
+    },
+    isOccupied(roomId, bedIndex) {
+      // Check if we have cache for this specific bed
+      if (this.roomOccupantsCache[roomId] && 
+          this.roomOccupantsCache[roomId].occupants && 
+          this.roomOccupantsCache[roomId].occupants[bedIndex] &&
+          this.roomOccupantsCache[roomId].occupants[bedIndex].user_id) {
+        return true;
+      }
+      
+      // Fall back to room's current_occupants count
+      const room = Object.values(this.roomsByFloor)
+        .flat()
+        .find(r => r.room_id === roomId);
+        
+      return room && bedIndex < room.current_occupants;
     }
   },
   mounted() {

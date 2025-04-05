@@ -138,12 +138,24 @@
             <div class="top-actions">
               <div class="applications-header" v-if="applications.length > 0">
                 <div class="applications-count">{{ applications.length }} 个待处理申请</div>
-                <button class="assign-roommates-btn" @click="handleAssignRoommates()">
-                  <i class="btn-icon">⚙️</i> 智能分配舍友
-                </button>
-                <button class="view-rooms-btn" @click="handleViewRooms()">
-                  <i class="btn-icon">🏠</i> 查看房间
-                </button>
+                <div class="applications-actions">
+                  <button 
+                    class="assign-roommates-btn" 
+                    @click="handleAssignRoommates()"
+                    :disabled="isAssigning"
+                    :class="{ 'loading': isAssigning }"
+                  >
+                    <span v-if="isAssigning">
+                      <i class="btn-icon">⏳</i> 正在分配...
+                    </span>
+                    <span v-else>
+                      <i class="btn-icon">⚙️</i> 智能分配舍友
+                    </span>
+                  </button>
+                  <button class="view-rooms-btn" @click="handleViewRooms()">
+                    <i class="btn-icon">🏠</i> 查看房间
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -256,6 +268,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Add a loading progress overlay -->
+    <div class="progress-overlay" v-if="isAssigning">
+      <div class="progress-container">
+        <h3>正在智能分配舍友</h3>
+        <div class="progress-bar-container">
+          <div class="progress-bar" :style="{ width: assignProgress + '%' }"></div>
+        </div>
+        <p>{{ assignProgressText }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -293,7 +316,10 @@ export default {
       loadingAssignmentResults: false,
       showRoomOccupants: false,
       roomOccupants: [],
-      loadingRoomOccupants: false
+      loadingRoomOccupants: false,
+      isAssigning: false,
+      assignProgress: 0,
+      assignProgressText: ''
     }
   },
   methods: {
@@ -509,12 +535,23 @@ export default {
     },
     async handleAssignRoommates() {
       try {
+        // If already assigning, don't allow multiple executions
+        if (this.isAssigning) {
+          return;
+        }
+        
         if (this.applications.length === 0) {
           this.showToast('没有待处理的申请');
           return;
         }
         
+        this.isAssigning = true;
+        this.assignProgress = 0;
+        this.assignProgressText = '正在初始化...';
         this.showToast('正在智能分配舍友...');
+        
+        // Start progress animation
+        this.startProgressAnimation();
         
         const userId = localStorage.getItem('userId');
         const response = await fetch('http://localhost:3000/api/dorm/assign-roommates', {
@@ -528,14 +565,25 @@ export default {
           })
         });
         
+        // Complete the progress
+        this.assignProgress = 95;
+        this.assignProgressText = '分配完成，正在更新数据...';
+        
         const data = await response.json();
         
         if (response.ok) {
-          // 存储分配结果
+          // Complete the progress
+          this.assignProgress = 100;
+          this.assignProgressText = '分配成功!';
+          
+          // Short delay to show 100% completion
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Store assignment results
           this.roomAssignments = data.data.roomAssignments;
           this.showAssignmentResults = true;
           this.showToast('舍友分配成功！');
-          // 刷新申请列表
+          // Refresh applications list
           this.fetchApplications(this.currentDorm.dorm_id);
         } else {
           this.showToast(data.message || '舍友分配失败，请重试');
@@ -543,7 +591,32 @@ export default {
       } catch (error) {
         console.error('分配舍友错误:', error);
         this.showToast('舍友分配失败，请稍后重试');
+      } finally {
+        // Make sure to reset the state even if there's an error
+        this.isAssigning = false;
       }
+    },
+    // Add this method to simulate progress during API call
+    startProgressAnimation() {
+      let progress = 0;
+      const interval = setInterval(() => {
+        if (this.isAssigning && progress < 90) {
+          // Simulate progress up to 90%
+          progress += Math.random() * 5;
+          this.assignProgress = Math.min(90, progress);
+          
+          // Update progress text based on completion percentage
+          if (this.assignProgress < 30) {
+            this.assignProgressText = '正在分析用户性格标签...';
+          } else if (this.assignProgress < 60) {
+            this.assignProgressText = '正在计算最佳舍友组合...';
+          } else if (this.assignProgress < 90) {
+            this.assignProgressText = '正在分配用户到房间...';
+          }
+        } else {
+          clearInterval(interval);
+        }
+      }, 300);
     },
     closeAssignmentResults() {
       this.showAssignmentResults = false;
@@ -854,12 +927,23 @@ export default {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .applications-count {
   font-size: 0.9rem;
   color: #aaa;
-  text-align: center;
+}
+
+.applications-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
 }
 
 .btn-icon {
@@ -867,34 +951,51 @@ export default {
 }
 
 .assign-roommates-btn, .view-rooms-btn {
-  background-color: #4CAF50;
-  color: white;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 6px;
-  padding: 0.7rem 1.2rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  display: flex;
   align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: 120px;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.assign-roommates-btn:hover, .view-rooms-btn:hover {
-  background-color: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.assign-roommates-btn {
+  background-color: #4CAF50;
 }
 
 .view-rooms-btn {
   background-color: #2196F3;
-  margin-left: 1rem;
 }
 
-.view-rooms-btn:hover {
-  background-color: #1976D2;
+.assign-roommates-btn:hover, .view-rooms-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.assign-roommates-btn:disabled {
+  background-color: #7c7c7c;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.assign-roommates-btn.loading {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 .application-item {
@@ -1224,6 +1325,53 @@ export default {
   margin: 0;
   color: #bbb;
   line-height: 1.5;
+}
+
+/* Add a loading progress overlay */
+.progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.progress-container {
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.progress-bar-container {
+  height: 20px;
+  background-color: #3a3a3a;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #4CAF50;
+  border-radius: 10px;
+}
+
+.progress-container h3 {
+  color: #4CAF50;
+  margin-bottom: 1rem;
+}
+
+.progress-container p {
+  color: #fff;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
