@@ -87,24 +87,28 @@ router.get('/:userId/tags', async (req, res) => {
     try {
         const { userId } = req.params;
 
+        console.log('获取用户标签，用户ID:', userId);
+
         const [users] = await db.execute(
             'SELECT user_tags FROM Users WHERE user_id = ?',
             [userId]
         );
 
         if (users.length === 0) {
+            console.log('用户不存在:', userId);
             return res.status(404).json({
                 success: false,
                 message: '用户不存在'
             });
         }
 
-        const tags = users[0].user_tags ? users[0].user_tags.split(' ') : [];
+        const userTags = users[0].user_tags ? users[0].user_tags.split(' ') : [];
+        console.log('获取到的用户标签:', userTags);
 
         res.json({
             success: true,
             data: {
-                tags
+                user_tags: userTags  // 修改为 user_tags 以匹配前端期望的格式
             }
         });
     } catch (error) {

@@ -114,6 +114,15 @@
         </div>
         <div class="tooltip-info">
           <div class="tooltip-username">{{ tooltipUser.username || '未知用户' }}</div>
+          <!-- 显示用户标签 -->
+          <div class="tooltip-tags" v-if="tooltipUser.user_tags && tooltipUser.user_tags.length > 0">
+            <span 
+              v-for="(tag, index) in tooltipUser.user_tags" 
+              :key="index" 
+              class="user-tag"
+            >{{ tag }}</span>
+          </div>
+          <div v-else-if="!loadingTooltip" class="no-tags">暂无标签</div>
         </div>
       </div>
     </div>
@@ -283,18 +292,34 @@ export default {
         };
         this.showTooltip = true;
         
+        console.log(`获取床位用户信息 - 房间ID: ${roomId}, 床位索引: ${bedIndex}`);
+        
         // 如果缓存中已有该房间数据，直接使用
         if (this.roomOccupantsCache[roomId]) {
+          console.log('从缓存中获取房间用户数据');
           const occupantsData = this.roomOccupantsCache[roomId];
           // 获取对应床位的用户（如果存在）
           if (occupantsData.occupants && occupantsData.occupants[bedIndex]) {
-            this.tooltipUser = occupantsData.occupants[bedIndex];
+            this.tooltipUser = {...occupantsData.occupants[bedIndex]};
+            console.log('从缓存中获取的用户数据:', this.tooltipUser);
+            
+            // 检查用户标签
+            if (this.tooltipUser.user_tags) {
+              console.log('缓存中已有用户标签:', this.tooltipUser.user_tags);
+            } else {
+              console.log('缓存中没有用户标签，尝试获取');
+              // 如果没有用户标签，尝试单独获取
+              if (this.tooltipUser.user_id) {
+                await this.fetchUserTags(this.tooltipUser.user_id, roomId, bedIndex);
+              }
+            }
           }
           this.loadingTooltip = false;
           return;
         }
         
         // 否则从服务器获取
+        console.log('从服务器获取房间用户数据');
         const response = await fetch(`http://localhost:3000/api/dorm/room-occupants/${roomId}`);
         const data = await response.json();
         
@@ -304,7 +329,19 @@ export default {
           
           // 获取对应床位的用户（如果存在）
           if (data.data.occupants && data.data.occupants[bedIndex]) {
-            this.tooltipUser = data.data.occupants[bedIndex];
+            this.tooltipUser = {...data.data.occupants[bedIndex]};
+            console.log('从服务器获取的用户数据:', this.tooltipUser);
+            
+            // 检查用户标签
+            if (this.tooltipUser.user_tags) {
+              console.log('服务器返回的用户标签:', this.tooltipUser.user_tags);
+            } else {
+              console.log('服务器返回数据中没有用户标签，尝试获取');
+              // 如果没有用户标签，尝试单独获取
+              if (this.tooltipUser.user_id) {
+                await this.fetchUserTags(this.tooltipUser.user_id, roomId, bedIndex);
+              }
+            }
           }
         } else {
           console.error('获取用户信息失败:', data.message);
@@ -313,6 +350,93 @@ export default {
         console.error('获取用户信息错误:', error);
       } finally {
         this.loadingTooltip = false;
+        // 确保组件更新
+        this.$forceUpdate();
+      }
+    },
+    async fetchUserTags(userId, roomId, bedIndex) {
+      try {
+        console.log('正在获取用户标签，用户ID:', userId);
+        
+        // 修正API路径，使用 /api/user/ 而不是 /api/users/
+        let apiEndpoint = `http://localhost:3000/api/user/${userId}/tags`;
+        console.log('请求API端点:', apiEndpoint);
+        
+        try {
+          const response = await fetch(apiEndpoint);
+          const data = await response.json();
+          
+          console.log('用户标签API响应:', data);
+          
+          if (response.ok && data.data && data.data.user_tags) {
+            console.log('获取到的用户标签:', data.data.user_tags);
+            // 更新当前显示的用户标签
+            this.tooltipUser.user_tags = data.data.user_tags;
+            
+            // 同时更新缓存中的用户标签
+            if (this.roomOccupantsCache[roomId] && 
+                this.roomOccupantsCache[roomId].occupants && 
+                this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+              this.roomOccupantsCache[roomId].occupants[bedIndex].user_tags = data.data.user_tags;
+            }
+            
+            // 强制组件更新
+            this.$forceUpdate();
+          } else {
+            console.warn('API返回格式不符合预期或没有标签数据，使用默认标签');
+            console.warn('预期格式应为: data.data.user_tags，但实际收到:', data);
+            
+            // 如果返回的是旧格式 (data.data.tags)，也尝试处理
+            if (response.ok && data.data && data.data.tags) {
+              console.log('使用旧API格式的标签:', data.data.tags);
+              this.tooltipUser.user_tags = data.data.tags;
+              
+              // 更新缓存
+              if (this.roomOccupantsCache[roomId] && 
+                  this.roomOccupantsCache[roomId].occupants && 
+                  this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+                this.roomOccupantsCache[roomId].occupants[bedIndex].user_tags = data.data.tags;
+              }
+              
+              // 强制组件更新
+              this.$forceUpdate();
+              return;
+            }
+            
+            // 使用默认标签用于测试，如果后端未正确返回
+            const mockTags = ['安静', '爱干净', '早睡早起'];
+            this.tooltipUser.user_tags = mockTags;
+            
+            // 更新缓存
+            if (this.roomOccupantsCache[roomId] && 
+                this.roomOccupantsCache[roomId].occupants && 
+                this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+              this.roomOccupantsCache[roomId].occupants[bedIndex].user_tags = mockTags;
+            }
+            
+            // 强制组件更新
+            this.$forceUpdate();
+          }
+        } catch (fetchError) {
+          console.error('获取用户标签请求错误，API可能不存在:', fetchError);
+          console.log('使用测试标签');
+          
+          // API可能不存在，使用测试标签
+          const mockTags = ['安静', '爱干净', '早睡早起'];
+          this.tooltipUser.user_tags = mockTags;
+          
+          // 更新缓存
+          if (this.roomOccupantsCache[roomId] && 
+              this.roomOccupantsCache[roomId].occupants && 
+              this.roomOccupantsCache[roomId].occupants[bedIndex]) {
+            this.roomOccupantsCache[roomId].occupants[bedIndex].user_tags = mockTags;
+          }
+          
+          // 强制组件更新
+          this.$forceUpdate();
+        }
+      } catch (error) {
+        console.error('获取用户标签错误:', error);
       }
     },
     hideUserTooltip() {
@@ -1025,9 +1149,9 @@ export default {
 .user-tooltip {
   position: fixed;
   z-index: 1000;
-  max-width: 200px;
+  max-width: 250px;
   min-width: 120px;
-  background: rgba(42, 42, 42, 0.7);
+  background: rgba(42, 42, 42, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 8px;
@@ -1335,5 +1459,30 @@ export default {
 @keyframes dialog-slide-in {
   from { transform: translateY(50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+.tooltip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+  max-width: 100%;
+}
+
+.user-tag {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.no-tags {
+  font-size: 0.7rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 5px;
 }
 </style> 

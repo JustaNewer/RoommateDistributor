@@ -8,7 +8,7 @@
     </header>
 
     <main class="chat-content" ref="chatContent">
-      <div class="messages-container">
+      <div class="messages-container" ref="messagesContainer" @scroll="handleUserScroll">
         <div class="messages" ref="messages">
           <div v-for="(message, index) in messages" :key="index" 
             :class="['message', message.type === 'user' ? 'user-message' : 'bot-message']">
@@ -20,6 +20,8 @@
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
           </div>
+          <!-- 使用空div作为滚动目标 -->
+          <div ref="scrollAnchor"></div>
         </div>
       </div>
 
@@ -54,10 +56,10 @@
 
     <button 
       class="back-to-top" 
-      @click="scrollToTop" 
-      v-show="showBackToTop"
+      @click="scrollToBottom" 
+      v-show="showScrollButton"
     >
-      ↑ 回到顶部
+      ↓ 滚动到底部
     </button>
   </div>
 </template>
@@ -77,7 +79,9 @@ export default {
       botAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=personality-test',
       conversationId: null,
       extractedTags: [],
-      showBackToTop: false
+      showScrollButton: false,
+      userHasScrolled: false,  // 跟踪用户是否已手动滚动
+      autoScrollEnabled: true  // 控制是否启用自动滚动
     }
   },
   methods: {
@@ -117,6 +121,9 @@ export default {
         return;
       }
 
+      // 重置滚动状态
+      this.autoScrollEnabled = true;
+      
       // 添加用户消息
       const userMessage = {
         content: messageToSend,
@@ -131,6 +138,9 @@ export default {
       this.isWaitingForBot = true;
       
       // 立即滚动到底部显示用户消息
+      this.scrollToBottom();
+      
+      // 确保DOM更新后再次滚动
       this.$nextTick(() => {
         this.scrollToBottom();
       });
@@ -185,6 +195,9 @@ export default {
           timestamp: new Date()
         };
         this.messages.push(botMessage);
+        
+        // 收到机器人回复后立即滚动到底部
+        this.scrollToBottom();
 
         // 检查消息是否是最终的标签总结（问卷结束消息）
         if (botResponse.includes('#')) {
@@ -200,11 +213,6 @@ export default {
             this.extractedTags = tags;
           }
         }
-
-        // 自动滚动到底部显示机器人回复
-        this.$nextTick(() => {
-          this.scrollToBottom();
-        });
       } catch (error) {
         console.error('发送消息错误:', error);
         // 添加错误消息到聊天界面
@@ -221,23 +229,43 @@ export default {
         });
       } finally {
         this.isWaitingForBot = false;
+        
+        // 确保在所有处理完成后再次滚动到底部
+        this.$nextTick(() => {
+          this.scrollToBottom();
+          
+          // 延迟一段时间后再次滚动，确保所有内容渲染完成
+          setTimeout(() => {
+            this.scrollToBottom();
+          }, 100);
+        });
       }
     },
     scrollToBottom() {
-      // 使用 messages-container 作为滚动容器
-      const container = this.$refs.chatContent.querySelector('.messages-container');
+      console.log("执行滚动到底部...");
+      // 获取消息容器
+      const container = this.$refs.messagesContainer;
       if (container) {
-        container.scrollTop = container.scrollHeight;
+        // 直接设置scrollTop到最大值，强制滚动到底部
+        container.scrollTop = container.scrollHeight * 2; // 乘以2确保滚动超过底部
+        console.log("已设置滚动位置:", container.scrollHeight);
+        
+        // 消除滚动按钮显示
+        this.showScrollButton = false;
+        // 重置自动滚动状态
+        this.autoScrollEnabled = true;
       }
     },
     scrollToTop() {
-      // 使用 messages-container 作为滚动容器
-      const container = this.$refs.chatContent.querySelector('.messages-container');
+      const container = this.$refs.messagesContainer;
       if (container) {
         container.scrollTo({
           top: 0,
           behavior: 'smooth'
         });
+        // 标记用户已手动滚动
+        this.userHasScrolled = true;
+        this.autoScrollEnabled = false;
       }
     },
     handleScroll() {
@@ -303,6 +331,29 @@ export default {
           this.saveTags(tags);
         }, 1000);
       }
+    },
+    // 监听用户滚动
+    handleUserScroll(event) {
+      const container = event.target;
+      const atBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 50;
+      
+      // 用户向上滚动时，标记为手动滚动
+      if (!atBottom) {
+        console.log("用户已滚动离开底部");
+        this.userHasScrolled = true;
+        this.autoScrollEnabled = false;
+        this.showScrollButton = true;
+      } else {
+        // 用户滚动到底部时，重新启用自动滚动
+        console.log("用户已滚动到底部");
+        this.userHasScrolled = false;
+        this.autoScrollEnabled = true;
+        this.showScrollButton = false;
+      }
+    },
+    handleOptionSelect(option) {
+      // 处理选项选择逻辑
+      console.log('Selected option:', option);
     }
   },
   async mounted() {
@@ -327,6 +378,11 @@ export default {
     if (container) {
       container.addEventListener('scroll', this.handleScroll);
     }
+
+    // 确保初始化时滚动到底部
+    this.$nextTick(() => {
+      this.scrollToBottom();
+    });
   },
   beforeUnmount() {
     // 移除滚动事件监听
@@ -335,11 +391,28 @@ export default {
       container.removeEventListener('scroll', this.handleScroll);
     }
   },
-  // 添加 updated 生命周期钩子，确保内容更新后滚动到底部
+  // 修改 updated 生命周期钩子
   updated() {
-    // 如果是新消息，自动滚动到底部
-    if (this.messages.length > 0) {
+    // 无条件滚动到底部
+    this.$nextTick(() => {
       this.scrollToBottom();
+    });
+  },
+  // 修改 watch 机制
+  watch: {
+    messages: {
+      handler() {
+        // 无条件滚动到底部
+        this.$nextTick(() => {
+          this.scrollToBottom();
+          
+          // 再次延迟执行，确保完全渲染
+          setTimeout(() => {
+            this.scrollToBottom();
+          }, 100);
+        });
+      },
+      deep: true
     }
   }
 }
@@ -402,13 +475,19 @@ export default {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 2rem 1rem 2rem;
+  padding: 2rem 2rem 6rem 2rem; /* 增加底部padding */
   margin-bottom: 80px; /* 为固定的输入框留出空间 */
+  height: calc(100vh - 180px); /* 调整适应视口高度 */
+  scrollbar-width: thin; /* Firefox样式 */
+  scroll-behavior: auto; /* 改为auto以避免平滑滚动延迟 */
+  position: relative;
 }
 
 .messages {
   display: flex;
   flex-direction: column;
+  min-height: 100%; /* 确保即使内容少也能滚动到底部 */
+  justify-content: flex-end; /* 默认将内容推向底部 */
 }
 
 .message {
@@ -602,7 +681,7 @@ input:focus {
 .back-to-top {
   position: fixed;
   bottom: 90px; /* 调整位置，避免与输入框重叠 */
-  left: 2rem;
+  right: 2rem; /* 改为右侧 */
   background-color: #4CAF50;
   color: white;
   border: none;
