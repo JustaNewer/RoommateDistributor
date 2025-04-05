@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { generateDormHash } = require('../utils/dorm');
+const { authenticateToken } = require('../middleware/auth');
 
 // 创建宿舍
 router.post('/create', async (req, res) => {
@@ -183,7 +184,8 @@ router.get('/:dormId', async (req, res) => {
                 school_name,
                 space,
                 floor_count,
-                rooms_per_floor
+                rooms_per_floor,
+                creator_user_id
              FROM Dorms
              WHERE dorm_id = ?`,
             [dormId]
@@ -764,6 +766,19 @@ router.post('/apply', async (req, res) => {
             });
         }
 
+        // 检查是否已经加入了其他宿舍
+        const [existingOccupancy] = await db.execute(
+            'SELECT * FROM DormOccupants WHERE user_id = ?',
+            [userId]
+        );
+
+        if (existingOccupancy.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: '您已经加入了一个宿舍，不能同时加入多个宿舍'
+            });
+        }
+
         // 检查是否已经申请过
         const [existingApplications] = await db.execute(
             'SELECT * FROM DormApplication WHERE dorm_id = ? AND user_id = ? AND application_status = "pending"',
@@ -1010,6 +1025,21 @@ router.put('/application/:applicationId', async (req, res) => {
             });
         }
 
+        // 如果要批准申请，先检查用户是否已加入其他宿舍
+        if (status === 'approved') {
+            const [existingOccupancy] = await db.execute(
+                'SELECT * FROM DormOccupants WHERE user_id = ?',
+                [application.user_id]
+            );
+
+            if (existingOccupancy.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: '该用户已经加入了一个宿舍，不能同时加入多个宿舍'
+                });
+            }
+        }
+
         // 开始数据库事务
         const connection = await db.getConnection();
         await connection.beginTransaction();
@@ -1143,6 +1173,24 @@ router.post('/assign-roommates', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: '没有待处理的申请'
+            });
+        }
+
+        // 检查所有申请用户是否已加入其他宿舍
+        const userIds = applications.map(app => app.user_id);
+        const [existingOccupancies] = await db.execute(
+            'SELECT user_id FROM DormOccupants WHERE user_id IN (?)',
+            [userIds]
+        );
+
+        if (existingOccupancies.length > 0) {
+            const occupiedUserIds = existingOccupancies.map(record => record.user_id);
+            return res.status(400).json({
+                success: false,
+                message: '部分用户已加入其他宿舍，无法分配',
+                data: {
+                    occupiedUserIds
+                }
             });
         }
 
@@ -1485,6 +1533,313 @@ router.get('/room-occupants', async (req, res) => {
         res.status(500).json({
             success: false,
             message: '服务器错误: ' + error.message
+        });
+    }
+});
+
+// 转移用户到新床位（新位置是空床位）
+router.post('/reassign-bed', authenticateToken, async (req, res) => {
+    try {
+        const { userId, roomId, newRoomId } = req.body;
+
+        // 验证参数
+        if (!userId || !roomId || !newRoomId) {
+            return res.status(400).json({
+                success: false,
+                message: '缺少必要参数'
+            });
+        }
+
+        // 开始事务
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 获取宿舍ID
+            const [roomResult] = await connection.execute(
+                'SELECT dorm_id FROM Rooms WHERE room_id = ?',
+                [roomId]
+            );
+
+            if (roomResult.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '房间不存在'
+                });
+            }
+
+            const dormId = roomResult[0].dorm_id;
+
+            // 验证新房间是否存在且属于同一宿舍
+            const [newRoomResult] = await connection.execute(
+                'SELECT dorm_id, current_occupants, capacity FROM Rooms WHERE room_id = ?',
+                [newRoomId]
+            );
+
+            if (newRoomResult.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '目标房间不存在'
+                });
+            }
+
+            if (newRoomResult[0].dorm_id !== dormId) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: '不能跨宿舍调整床位'
+                });
+            }
+
+            if (newRoomResult[0].current_occupants >= newRoomResult[0].capacity) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: '目标房间已满'
+                });
+            }
+
+            // 更新用户的房间分配
+            await connection.execute(
+                'UPDATE DormOccupants SET room_id = ? WHERE user_id = ? AND dorm_id = ?',
+                [newRoomId, userId, dormId]
+            );
+
+            // 更新原房间和新房间的入住人数
+            await connection.execute(
+                'UPDATE Rooms SET current_occupants = current_occupants - 1 WHERE room_id = ?',
+                [roomId]
+            );
+
+            await connection.execute(
+                'UPDATE Rooms SET current_occupants = current_occupants + 1 WHERE room_id = ?',
+                [newRoomId]
+            );
+
+            // 提交事务
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: '床位调整成功'
+            });
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('床位调整错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 交换两个用户的床位
+router.post('/swap-beds', authenticateToken, async (req, res) => {
+    try {
+        const { userId1, roomId1, userId2, roomId2 } = req.body;
+
+        // 验证参数
+        if (!userId1 || !roomId1 || !userId2 || !roomId2) {
+            return res.status(400).json({
+                success: false,
+                message: '缺少必要参数'
+            });
+        }
+
+        // 验证是否在同一房间 - 不允许同一房间交换床位
+        if (roomId1 === roomId2) {
+            return res.status(400).json({
+                success: false,
+                message: '同一房间内不允许交换床位'
+            });
+        }
+
+        // 开始事务
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 获取宿舍ID
+            const [roomResult] = await connection.execute(
+                'SELECT dorm_id FROM Rooms WHERE room_id = ?',
+                [roomId1]
+            );
+
+            if (roomResult.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '房间不存在'
+                });
+            }
+
+            const dormId = roomResult[0].dorm_id;
+
+            // 验证第二个房间是否存在且属于同一宿舍
+            const [room2Result] = await connection.execute(
+                'SELECT dorm_id FROM Rooms WHERE room_id = ?',
+                [roomId2]
+            );
+
+            if (room2Result.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '目标房间不存在'
+                });
+            }
+
+            if (room2Result[0].dorm_id !== dormId) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: '不能跨宿舍交换床位'
+                });
+            }
+
+            // 验证两个用户是否都在宿舍中
+            const [user1Result] = await connection.execute(
+                'SELECT * FROM DormOccupants WHERE user_id = ? AND dorm_id = ? AND room_id = ?',
+                [userId1, dormId, roomId1]
+            );
+
+            const [user2Result] = await connection.execute(
+                'SELECT * FROM DormOccupants WHERE user_id = ? AND dorm_id = ? AND room_id = ?',
+                [userId2, dormId, roomId2]
+            );
+
+            if (user1Result.length === 0 || user2Result.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '用户床位信息不匹配'
+                });
+            }
+
+            // 交换两个用户的房间分配
+            await connection.execute(
+                'UPDATE DormOccupants SET room_id = ? WHERE user_id = ? AND dorm_id = ?',
+                [roomId2, userId1, dormId]
+            );
+
+            await connection.execute(
+                'UPDATE DormOccupants SET room_id = ? WHERE user_id = ? AND dorm_id = ?',
+                [roomId1, userId2, dormId]
+            );
+
+            // 提交事务
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: '床位交换成功'
+            });
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('床位交换错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 移除用户住户
+router.post('/remove-occupant', authenticateToken, async (req, res) => {
+    try {
+        const { userId, roomId } = req.body;
+
+        // 验证参数
+        if (!userId || !roomId) {
+            return res.status(400).json({
+                success: false,
+                message: '缺少必要参数'
+            });
+        }
+
+        // 开始事务
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // 获取宿舍ID和房间信息
+            const [roomResult] = await connection.execute(
+                'SELECT dorm_id FROM Rooms WHERE room_id = ?',
+                [roomId]
+            );
+
+            if (roomResult.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '房间不存在'
+                });
+            }
+
+            const dormId = roomResult[0].dorm_id;
+
+            // 验证用户是否在该房间
+            const [userOccupancy] = await connection.execute(
+                'SELECT * FROM DormOccupants WHERE user_id = ? AND room_id = ? AND dorm_id = ?',
+                [userId, roomId, dormId]
+            );
+
+            if (userOccupancy.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({
+                    success: false,
+                    message: '该用户不在此房间'
+                });
+            }
+
+            // 从DormOccupants表中删除记录
+            await connection.execute(
+                'DELETE FROM DormOccupants WHERE user_id = ? AND room_id = ? AND dorm_id = ?',
+                [userId, roomId, dormId]
+            );
+
+            // 更新房间的入住人数
+            await connection.execute(
+                'UPDATE Rooms SET current_occupants = current_occupants - 1 WHERE room_id = ?',
+                [roomId]
+            );
+
+            // 更新用户表中的宿舍ID
+            await connection.execute(
+                'UPDATE Users SET dorm_id = NULL WHERE user_id = ?',
+                [userId]
+            );
+
+            // 提交事务
+            await connection.commit();
+
+            res.json({
+                success: true,
+                message: '已成功移除住户'
+            });
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('移除住户错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
         });
     }
 });

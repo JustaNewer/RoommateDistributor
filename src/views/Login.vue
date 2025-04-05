@@ -129,9 +129,18 @@ export default {
             content: '登录成功',
             type: 'success'
           };
-          // 保存用户信息
-          localStorage.setItem('userId', data.user.id);
+          
+          console.log('登录成功，用户数据:', data.user);
+          
+          // 保存用户信息到localStorage
+          localStorage.setItem('userToken', data.token);
+          localStorage.setItem('userId', String(data.user.id)); // 确保以字符串形式保存
           localStorage.setItem('username', data.user.username);
+          
+          // 验证数据是否正确保存
+          console.log('保存到localStorage - token:', data.token);
+          console.log('保存到localStorage - userId:', data.user.id);
+          
           // 跳转到之前想要访问的页面，如果没有则跳转到主页
           const redirectPath = this.$route.query.redirect || '/home';
           this.$router.push(redirectPath);

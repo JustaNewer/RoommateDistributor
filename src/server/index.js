@@ -18,6 +18,14 @@ app.use('/api/avatar', avatarRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/dorm', dormRoutes);  // 注册宿舍路由
 
+// 处理404
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'API路径不存在'
+    });
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
     console.error(err.stack);

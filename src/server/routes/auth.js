@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { hashPassword } = require('../utils/crypto');
+const jwt = require('jsonwebtoken');
+const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
+
+// 设置JWT过期时间
+const JWT_EXPIRES_IN = '24h'; // 令牌24小时后过期
 
 // 用户注册
 router.post('/register', async (req, res) => {
@@ -80,6 +85,13 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        // 创建JWT令牌
+        const token = jwt.sign(
+            { userId: users[0].user_id, username: users[0].username },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
         // 登录成功
         res.json({
             success: true,
@@ -87,7 +99,9 @@ router.post('/login', async (req, res) => {
             user: {
                 id: users[0].user_id,
                 username: users[0].username
-            }
+            },
+            token: token,
+            expiresIn: JWT_EXPIRES_IN
         });
     } catch (error) {
         console.error('登录错误:', error);
@@ -98,13 +112,63 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 修改密码
-router.post('/change-password', async (req, res) => {
+// 验证令牌
+router.get('/verify-token', (req, res) => {
     try {
-        const { userId, oldPassword, newPassword } = req.body;
+        const token = req.headers.authorization?.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: '未提供令牌'
+            });
+        }
+
+        // 验证令牌
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({
+                    success: false,
+                    message: '令牌无效或已过期'
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: '令牌有效',
+                user: {
+                    id: decoded.userId,
+                    username: decoded.username
+                }
+            });
+        });
+    } catch (error) {
+        console.error('验证令牌错误:', error);
+        res.status(500).json({
+            success: false,
+            message: '服务器错误'
+        });
+    }
+});
+
+// 用户登出
+router.post('/logout', (req, res) => {
+    // 客户端需要删除令牌，服务器端不需要执行特殊操作
+    // 因为我们使用的是无状态JWT令牌
+    res.json({
+        success: true,
+        message: '已成功登出'
+    });
+});
+
+// 修改密码
+router.post('/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user.userId; // 从令牌中获取用户ID
 
         // 验证参数
-        if (!userId || !oldPassword || !newPassword) {
+        if (!oldPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
                 message: '缺少必要参数'
