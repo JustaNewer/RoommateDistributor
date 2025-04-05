@@ -91,6 +91,7 @@
                 type="number" 
                 v-model="editForm.floorCount" 
                 min="1"
+                max="30"
                 placeholder="请输入楼层数"
                 class="form-input"
               >
@@ -102,6 +103,7 @@
                 type="number" 
                 v-model="editForm.roomsPerFloor" 
                 min="1"
+                max="100"
                 placeholder="请输入每层房间数"
                 class="form-input"
               >
@@ -379,8 +381,13 @@ export default {
         }
 
         // 验证数值字段为正整数
-        if (this.editForm.floorCount < 1 || this.editForm.roomsPerFloor < 1) {
-          this.showToast('楼层数和每层房间数必须大于0');
+        if (this.editForm.floorCount < 1 || this.editForm.floorCount > 30) {
+          this.showToast('楼层数必须在1-30之间');
+          return;
+        }
+
+        if (this.editForm.roomsPerFloor < 1 || this.editForm.roomsPerFloor > 100) {
+          this.showToast('每层房间数必须在1-100之间');
           return;
         }
 

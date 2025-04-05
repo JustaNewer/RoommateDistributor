@@ -105,6 +105,7 @@
                       type="number" 
                       v-model="dormForm.floorCount" 
                       min="1"
+                      max="30"
                       placeholder="请输入楼层数"
                       class="form-input"
                     >
@@ -116,6 +117,7 @@
                       type="number" 
                       v-model="dormForm.roomsPerFloor" 
                       min="1"
+                      max="100"
                       placeholder="请输入每层房间数"
                       class="form-input"
                     >
@@ -263,6 +265,23 @@ export default {
 
         if (!this.dormForm.space || !this.dormForm.floorCount || !this.dormForm.roomsPerFloor) {
           this.showToast('请填写宿舍容量、楼层数和每层房间数', 'error');
+          return;
+        }
+
+        // 验证宿舍容量
+        if (![2, 4, 6, 8].includes(Number(this.dormForm.space))) {
+          this.showToast('宿舍容量必须是2、4、6或8人', 'error');
+          return;
+        }
+
+        // 验证楼层数和每层房间数
+        if (this.dormForm.floorCount < 1 || this.dormForm.floorCount > 30) {
+          this.showToast('楼层数必须在1-30之间', 'error');
+          return;
+        }
+
+        if (this.dormForm.roomsPerFloor < 1 || this.dormForm.roomsPerFloor > 100) {
+          this.showToast('每层房间数必须在1-100之间', 'error');
           return;
         }
 
