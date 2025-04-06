@@ -267,8 +267,8 @@ export default {
         const response = await fetch(`http://localhost:3000/api/user/${userId}/tags`);
         const data = await response.json();
         
-        if (response.ok && data.data.tags) {
-          this.userTags = data.data.tags;
+        if (response.ok && data.data.user_tags) {
+          this.userTags = data.data.user_tags;
         }
       } catch (error) {
         console.error('获取用户标签失败:', error);
