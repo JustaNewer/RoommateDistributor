@@ -211,6 +211,8 @@ export default {
             this.testCompleted = true;
             // 保存提取的标签
             this.extractedTags = tags;
+            // 调用保存标签方法
+            this.saveTags(tags);
           }
         }
       } catch (error) {

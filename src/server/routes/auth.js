@@ -162,13 +162,12 @@ router.post('/logout', (req, res) => {
 });
 
 // 修改密码
-router.post('/change-password', authenticateToken, async (req, res) => {
+router.post('/change-password', async (req, res) => {
     try {
-        const { oldPassword, newPassword } = req.body;
-        const userId = req.user.userId; // 从令牌中获取用户ID
+        const { userId, oldPassword, newPassword } = req.body;
 
         // 验证参数
-        if (!oldPassword || !newPassword) {
+        if (!userId || !oldPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
                 message: '缺少必要参数'

@@ -221,34 +221,47 @@ export default {
       }
 
       try {
+        const userId = localStorage.getItem('userId');
+        
+        if (!userId) {
+          alert('请先登录');
+          this.$router.push('/login');
+          return;
+        }
+
+        // 直接使用无认证的请求，完全移除JWT令牌功能
         const response = await fetch('http://localhost:3000/api/auth/change-password', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            userId: localStorage.getItem('userId'),
+            userId: userId,
             oldPassword: this.passwordForm.oldPassword,
             newPassword: this.passwordForm.newPassword
           })
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          alert('密码修改成功');
-          // 清空表单
-          this.passwordForm = {
-            oldPassword: '',
-            newPassword: '',
-            confirmPassword: ''
-          };
-        } else {
-          alert(data.message || '密码修改失败');
+        // 检查是否成功返回数据
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || '密码修改失败');
         }
+
+        // 解析响应但不存储在未使用的变量中
+        await response.json();
+        
+        // 成功修改密码
+        alert('密码修改成功');
+        // 清空表单
+        this.passwordForm = {
+          oldPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        };
       } catch (error) {
         console.error('修改密码错误:', error);
-        alert('网络错误，请稍后重试');
+        alert('密码修改失败: ' + (error.message || '请稍后重试'));
       }
     },
     startPersonalityTest() {
