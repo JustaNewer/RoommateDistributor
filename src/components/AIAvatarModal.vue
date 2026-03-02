@@ -13,6 +13,23 @@
             placeholder="例如：一个微笑的动漫风格头像，蓝色头发，戴着眼镜..."
             rows="4"
           ></textarea>
+          <div class="hint-text">
+            💡 提示：描述越详细，生成的头像越符合你的预期。生成过程大约需要10-30秒。
+          </div>
+        </div>
+        <div class="examples">
+          <p class="examples-title">示例提示词：</p>
+          <div class="example-tags">
+            <span class="example-tag" @click="prompt = '可爱的动漫风格头像，粉色头发，大眼睛，微笑'">
+              动漫风格
+            </span>
+            <span class="example-tag" @click="prompt = '写实风格的专业商务头像，正装，自信的表情'">
+              商务风格
+            </span>
+            <span class="example-tag" @click="prompt = '卡通风格头像，圆脸，戴眼镜，温暖的笑容'">
+              卡通风格
+            </span>
+          </div>
         </div>
         <button 
           class="generate-btn" 
@@ -44,25 +61,26 @@ export default {
 
       this.isGenerating = true;
       try {
-        // TODO: 调用后端 AI 生成接口
-        // const response = await fetch('http://localhost:3000/api/avatar/generate', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     userId: localStorage.getItem('userId'),
-        //     prompt: this.prompt
-        //   })
-        // });
+        const response = await fetch('http://localhost:3000/api/avatar/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: localStorage.getItem('userId'),
+            prompt: this.prompt
+          })
+        });
 
-        // const data = await response.json();
-        // if (response.ok) {
-        //   this.$emit('avatarGenerated', data.avatarUrl);
-        //   this.$emit('close');
-        // } else {
-        //   alert(data.message || '生成失败');
-        // }
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert('头像生成成功！');
+          this.$emit('avatarGenerated', data.data.avatarUrl);
+          this.$emit('close');
+        } else {
+          alert(data.message || '生成失败');
+        }
       } catch (error) {
         console.error('生成头像错误:', error);
         alert('网络错误，请稍后重试');
@@ -179,5 +197,48 @@ textarea::placeholder {
 .generate-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.hint-text {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+  line-height: 1.5;
+}
+
+.examples {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+}
+
+.examples-title {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.example-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.example-tag {
+  padding: 0.4rem 0.8rem;
+  background-color: #3a3a3a;
+  color: #4CAF50;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #4a4a4a;
+}
+
+.example-tag:hover {
+  background-color: #4CAF50;
+  color: white;
+  transform: translateY(-1px);
 }
 </style> 

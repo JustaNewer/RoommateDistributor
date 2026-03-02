@@ -648,7 +648,6 @@ export default {
 }
 
 .create-room-form {
-  padding: 2rem;
   background-color: #2a2a2a;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -656,19 +655,21 @@ export default {
   max-height: calc(80vh - 120px);
   overflow-y: auto;
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-header {
   position: sticky;
   top: 0;
   background-color: #2a2a2a;
-  padding: 1rem 0;
+  padding: 1.5rem 2rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
   border-bottom: 1px solid #3a3a3a;
-  z-index: 1;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 .form-header h3 {
@@ -678,9 +679,10 @@ export default {
 }
 
 .form-body {
-  padding: 1rem;
+  padding: 1.5rem 2rem;
   min-height: 200px;
   position: relative;
+  flex: 1;
 }
 
 .form-group {
@@ -725,8 +727,10 @@ export default {
 }
 
 .form-footer {
+  padding: 1rem 2rem 1.5rem;
   text-align: right;
-  margin-top: 1rem;
+  background-color: #2a2a2a;
+  flex-shrink: 0;
 }
 
 .submit-btn {

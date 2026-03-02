@@ -28,7 +28,20 @@
               <input type="text" v-model="loginForm.username" placeholder="用户名" />
             </div>
             <div class="input-group">
-              <input type="password" v-model="loginForm.password" placeholder="密码" />
+              <div class="password-input-wrapper">
+                <input 
+                  :type="passwordVisibility.login ? 'text' : 'password'" 
+                  v-model="loginForm.password" 
+                  placeholder="密码" 
+                />
+                <button 
+                  class="toggle-password-btn"
+                  @click="togglePasswordVisibility('login')"
+                  type="button"
+                >
+                  {{ passwordVisibility.login ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
             </div>
             <div class="message" :class="{ error: loginMessage.type === 'error' }" v-if="loginMessage.content">
               {{ loginMessage.content }}
@@ -48,10 +61,36 @@
               <input type="text" v-model="registerForm.username" placeholder="设置用户名" />
             </div>
             <div class="input-group">
-              <input type="password" v-model="registerForm.password" placeholder="设置密码" />
+              <div class="password-input-wrapper">
+                <input 
+                  :type="passwordVisibility.register ? 'text' : 'password'" 
+                  v-model="registerForm.password" 
+                  placeholder="设置密码" 
+                />
+                <button 
+                  class="toggle-password-btn"
+                  @click="togglePasswordVisibility('register')"
+                  type="button"
+                >
+                  {{ passwordVisibility.register ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
             </div>
             <div class="input-group">
-              <input type="password" v-model="registerForm.confirmPassword" placeholder="确认密码" />
+              <div class="password-input-wrapper">
+                <input 
+                  :type="passwordVisibility.confirm ? 'text' : 'password'" 
+                  v-model="registerForm.confirmPassword" 
+                  placeholder="确认密码" 
+                />
+                <button 
+                  class="toggle-password-btn"
+                  @click="togglePasswordVisibility('confirm')"
+                  type="button"
+                >
+                  {{ passwordVisibility.confirm ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
             </div>
             <div class="message" :class="{ error: registerMessage.type === 'error' }" v-if="registerMessage.content">
               {{ registerMessage.content }}
@@ -92,16 +131,25 @@ export default {
       registerMessage: {
         content: '',
         type: ''
+      },
+      passwordVisibility: {
+        login: false,
+        register: false,
+        confirm: false
       }
     }
   },
   methods: {
+    togglePasswordVisibility(field) {
+      this.passwordVisibility[field] = !this.passwordVisibility[field];
+    },
     toggleForm() {
       this.isRegistering = !this.isRegistering;
       this.loginMessage.content = '';
       this.registerMessage.content = '';
       this.loginForm = { username: '', password: '' };
       this.registerForm = { username: '', password: '', confirmPassword: '' };
+      this.passwordVisibility = { login: false, register: false, confirm: false };
     },
     async handleLogin() {
       if (!this.loginForm.username || !this.loginForm.password) {
@@ -356,6 +404,36 @@ body {
 
 .input-group input::placeholder {
   color: #888;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 45px;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.2rem;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.toggle-password-btn:hover {
+  color: #4CAF50;
 }
 
 .button-group {

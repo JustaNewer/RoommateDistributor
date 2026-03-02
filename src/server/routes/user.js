@@ -124,7 +124,6 @@ router.get('/:userId/tags', async (req, res) => {
 router.post('/chat/proxy', async (req, res) => {
     try {
         const { message, userId, conversationId } = req.body;
-
         console.log('Received request:', { message, userId, conversationId });
 
         // 检查环境变量是否正确加载
@@ -157,7 +156,7 @@ router.post('/chat/proxy', async (req, res) => {
         const requestBody = {
             model: DEEPSEEK_MODEL,
             messages: conversationHistories[userId],
-            temperature: 0.7,
+            temperature: 1,
             max_tokens: 1000
         };
 
@@ -223,7 +222,8 @@ router.post('/chat/proxy', async (req, res) => {
             // 根据对话上下文确定是否应该处理标签
             const shouldProcessTags = () => {
                 // 至少需要10条消息 (系统提示+5个问题+5个回答+最后询问+回答+总结)
-                if (conversationHistories[userId].length < 12) {
+                if (conversationHistories[userId].length < 10) {
+                    console.log('对话消息数量不足，当前消息数:', conversationHistories[userId].length);
                     return false;
                 }
 
@@ -232,17 +232,29 @@ router.post('/chat/proxy', async (req, res) => {
                 let hasAskedSupplementQuestion = false;
                 for (let i = conversationHistories[userId].length - 4; i >= 0; i--) {
                     const message = conversationHistories[userId][i];
-                    if (message.role === 'assistant' &&
-                        message.content.includes('还有其他需要补充的信息') ||
-                        message.content.includes('其他想补充的信息')) {
+                    if (message.role === 'assistant' && 
+                        (message.content.includes('还有其他需要补充的信息') || 
+                         message.content.includes('其他想补充的信息') ||
+                         message.content.includes('还有其他') ||
+                         message.content.includes('补充'))) {
                         hasAskedSupplementQuestion = true;
+                        console.log('检测到补充信息询问，位置:', i);
                         break;
                     }
                 }
 
+                // 或者检查是否是问卷结束消息
+                if (!hasAskedSupplementQuestion && botResponse.includes('问卷') && 
+                    (botResponse.includes('结束') || botResponse.includes('完成'))) {
+                    console.log('检测到问卷结束消息');
+                    return true;
+                }
+
+                console.log('是否找到补充信息询问:', hasAskedSupplementQuestion);
                 return hasAskedSupplementQuestion;
             };
 
+            console.log('检查是否包含标签:', botResponse.includes('#'));
             if (botResponse.includes('#') && shouldProcessTags()) {
                 const tags = botResponse.match(/#([^#\s,.!?，。！？]+)/g)?.map(tag => tag.slice(1)) || [];
 

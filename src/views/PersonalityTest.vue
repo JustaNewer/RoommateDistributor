@@ -20,8 +20,8 @@
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
           </div>
-          <!-- 使用空div作为滚动目标 -->
-          <div ref="scrollAnchor"></div>
+          <!-- 添加锚点元素用于滚动 -->
+          <div ref="scrollAnchor" id="scroll-anchor"></div>
         </div>
       </div>
 
@@ -137,14 +137,11 @@ export default {
       this.showOptions = false;
       this.isWaitingForBot = true;
       
-      // 立即滚动到底部显示用户消息
-      this.scrollToBottom();
-      
-      // 确保DOM更新后再次滚动
+      // 强制立即滚动到底部
       this.$nextTick(() => {
         this.scrollToBottom();
       });
-
+      
       try {
         // 调用智能体API
         console.log('正在调用智能体API...');
@@ -196,8 +193,16 @@ export default {
         };
         this.messages.push(botMessage);
         
-        // 收到机器人回复后立即滚动到底部
-        this.scrollToBottom();
+        // 使用连续的延迟滚动确保滚动到底部
+        this.$nextTick(() => {
+          this.scrollToBottom();
+          
+          // 延迟滚动以确保渲染完成
+          setTimeout(() => this.scrollToBottom(), 50);
+          setTimeout(() => this.scrollToBottom(), 150);
+          setTimeout(() => this.scrollToBottom(), 300);
+          setTimeout(() => this.scrollToBottom(), 500);
+        });
 
         // 检查消息是否是最终的标签总结（问卷结束消息）
         if (botResponse.includes('#')) {
@@ -236,26 +241,35 @@ export default {
         this.$nextTick(() => {
           this.scrollToBottom();
           
-          // 延迟一段时间后再次滚动，确保所有内容渲染完成
-          setTimeout(() => {
-            this.scrollToBottom();
-          }, 100);
+          // 延迟滚动确保渲染完成
+          setTimeout(() => this.scrollToBottom(), 100);
+          setTimeout(() => this.scrollToBottom(), 300);
         });
       }
     },
     scrollToBottom() {
       console.log("执行滚动到底部...");
-      // 获取消息容器
-      const container = this.$refs.messagesContainer;
-      if (container) {
-        // 直接设置scrollTop到最大值，强制滚动到底部
-        container.scrollTop = container.scrollHeight * 2; // 乘以2确保滚动超过底部
-        console.log("已设置滚动位置:", container.scrollHeight);
+      // 尝试多种滚动方法来确保滚动到底部
+      try {
+        // 方法1: 使用scrollIntoView滚动到锚点元素
+        if (this.$refs.scrollAnchor) {
+          this.$refs.scrollAnchor.scrollIntoView({ behavior: 'auto', block: 'end' });
+          console.log("使用scrollIntoView方法滚动到锚点");
+        }
+        
+        // 方法2: 直接设置容器的scrollTop
+        const container = this.$refs.messagesContainer;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+          console.log("直接设置scrollTop到:", container.scrollHeight);
+        }
         
         // 消除滚动按钮显示
         this.showScrollButton = false;
         // 重置自动滚动状态
         this.autoScrollEnabled = true;
+      } catch (err) {
+        console.error("滚动失败:", err);
       }
     },
     scrollToTop() {
@@ -384,6 +398,7 @@ export default {
     // 确保初始化时滚动到底部
     this.$nextTick(() => {
       this.scrollToBottom();
+      setTimeout(() => this.scrollToBottom(), 100);
     });
   },
   beforeUnmount() {
@@ -393,25 +408,21 @@ export default {
       container.removeEventListener('scroll', this.handleScroll);
     }
   },
-  // 修改 updated 生命周期钩子
   updated() {
-    // 无条件滚动到底部
-    this.$nextTick(() => {
-      this.scrollToBottom();
-    });
+    // 在每次DOM更新后强制滚动到底部
+    this.scrollToBottom();
   },
-  // 修改 watch 机制
   watch: {
     messages: {
       handler() {
-        // 无条件滚动到底部
+        // 在消息变化时强制滚动到底部
         this.$nextTick(() => {
           this.scrollToBottom();
           
-          // 再次延迟执行，确保完全渲染
-          setTimeout(() => {
-            this.scrollToBottom();
-          }, 100);
+          // 使用延时确保DOM完全渲染后滚动
+          setTimeout(() => this.scrollToBottom(), 50);
+          setTimeout(() => this.scrollToBottom(), 150);
+          setTimeout(() => this.scrollToBottom(), 300);
         });
       },
       deep: true
@@ -699,5 +710,12 @@ input:focus {
 .back-to-top:hover {
   transform: translateY(-2px);
   background-color: #45a049;
+}
+
+/* 确保锚点元素高度为0，不影响布局 */
+#scroll-anchor {
+  height: 1px;
+  margin: 0;
+  padding: 0;
 }
 </style> 
