@@ -1,111 +1,263 @@
 <template>
-  <div class="app-container">
-    <!-- Language Toggle - top right -->
-    <div class="lang-toggle-fixed">
+  <div class="auth-root">
+    <!-- Theme + Language Toggles -->
+    <div class="toggles-fixed">
+      <ThemeToggle />
       <LangToggle />
     </div>
 
-    <!-- Left side - Application Description -->
-    <div class="description-section">
-      <div class="description-content">
-        <h1 class="title">{{ $t('login.systemTitle') }}</h1>
-        <p class="description">
-          {{ $t('login.systemDesc') }}
-          <span class="highlight">{{ $t('login.systemHighlight') }}</span>
-        </p>
-        <div class="animated-circles">
-          <div class="circle"></div>
-          <div class="circle"></div>
-          <div class="circle"></div>
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="left-panel">
+      <!-- Decorative orbs -->
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <!-- Grid overlay -->
+      <div class="grid-overlay"></div>
+
+      <div class="brand-content">
+        <!-- Logo mark -->
+        <div class="logo-mark">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="19" stroke="url(#lg)" stroke-width="2"/>
+            <path d="M12 20c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="20" cy="20" r="3" fill="url(#lg)"/>
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4ade80"/>
+                <stop offset="1" stop-color="#22d3ee"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <h1 class="brand-title">{{ $t('login.systemTitle') }}</h1>
+        <p class="brand-subtitle">{{ $t('login.systemDesc') }}</p>
+        <p class="brand-highlight">{{ $t('login.systemHighlight') }}</p>
+
+        <!-- Feature chips -->
+        <div class="feature-list">
+          <div class="feature-chip">
+            <span class="chip-icon">🧠</span>
+            <span>AI 性格匹配</span>
+          </div>
+          <div class="feature-chip">
+            <span class="chip-icon">🏠</span>
+            <span>智能宿舍管理</span>
+          </div>
+          <div class="feature-chip">
+            <span class="chip-icon">⚡</span>
+            <span>一键分配舍友</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Right side - Auth Card -->
-    <div class="login-section">
-      <div class="login-card">
-        <transition name="fade" mode="out-in">
-          <!-- Login Form -->
-          <div v-if="!isRegistering" key="login" class="form-container">
-            <h2>{{ $t('login.loginTitle') }}</h2>
-            <div class="input-group">
-              <input type="text" v-model="loginForm.username" :placeholder="$t('login.username')" />
+    <!-- ===== RIGHT PANEL ===== -->
+    <div class="right-panel">
+      <div class="form-card">
+        <!-- Card header -->
+        <div class="card-header">
+          <div class="card-logo">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="19" stroke="url(#lg2)" stroke-width="2"/>
+              <path d="M12 20c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8" stroke="url(#lg2)" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="20" cy="20" r="3" fill="url(#lg2)"/>
+              <defs>
+                <linearGradient id="lg2" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#4ade80"/>
+                  <stop offset="1" stop-color="#22d3ee"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <transition name="slide-title" mode="out-in">
+            <div :key="isRegistering ? 'reg' : 'log'" class="card-title-block">
+              <h2 class="card-title">
+                {{ isRegistering ? $t('login.registerTitle') : $t('login.loginTitle') }}
+              </h2>
+              <p class="card-desc">
+                {{ isRegistering ? $t('login.fillAllFields') : $t('login.fillAll') }}
+              </p>
             </div>
-            <div class="input-group">
-              <div class="password-input-wrapper">
-                <input 
-                  :type="passwordVisibility.login ? 'text' : 'password'" 
-                  v-model="loginForm.password" 
-                  :placeholder="$t('login.password')" 
+          </transition>
+        </div>
+
+        <!-- Form area with transition -->
+        <transition name="fade-slide" mode="out-in">
+
+          <!-- ── LOGIN FORM ── -->
+          <div v-if="!isRegistering" key="login" class="form-body">
+            <div class="field">
+              <label class="field-label">{{ $t('login.username') }}</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  v-model="loginForm.username"
+                  :placeholder="$t('login.username')"
+                  class="field-input"
+                  @keyup.enter="handleLogin"
                 />
-                <button 
-                  class="toggle-password-btn"
-                  @click="togglePasswordVisibility('login')"
-                  type="button"
-                >
-                  {{ passwordVisibility.login ? '👁️' : '👁️‍🗨️' }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">{{ $t('login.password') }}</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  :type="passwordVisibility.login ? 'text' : 'password'"
+                  v-model="loginForm.password"
+                  :placeholder="$t('login.password')"
+                  class="field-input"
+                  @keyup.enter="handleLogin"
+                />
+                <button class="eye-btn" type="button" @click="togglePasswordVisibility('login')">
+                  <svg v-if="passwordVisibility.login" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
                 </button>
               </div>
             </div>
-            <div class="message" :class="{ error: loginMessage.type === 'error' }" v-if="loginMessage.content">
-              {{ loginMessage.content }}
-            </div>
-            <div class="button-group">
-              <button class="login-btn" @click="handleLogin" :disabled="isLoading">
-                {{ isLoading ? $t('login.loggingIn') : $t('login.loginBtn') }}
-              </button>
-              <button class="register-btn" @click="toggleForm" :disabled="isLoading">{{ $t('login.registerBtn') }}</button>
-            </div>
+
+            <!-- Message -->
+            <transition name="msg-fade">
+              <div v-if="loginMessage.content" class="msg" :class="loginMessage.type">
+                <svg v-if="loginMessage.type === 'error'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {{ loginMessage.content }}
+              </div>
+            </transition>
+
+            <button class="submit-btn" @click="handleLogin" :disabled="isLoading">
+              <span v-if="isLoading" class="loading-dots">
+                <span></span><span></span><span></span>
+              </span>
+              <span v-else>{{ $t('login.loginBtn') }}</span>
+            </button>
+
+            <div class="divider"><span>{{ $i18n.locale === 'en' ? 'or' : '或者' }}</span></div>
+
+            <button class="switch-btn" @click="toggleForm" :disabled="isLoading">
+              {{ $t('login.registerBtn') }} →
+            </button>
           </div>
 
-          <!-- Register Form -->
-          <div v-else key="register" class="form-container">
-            <h2>{{ $t('login.registerTitle') }}</h2>
-            <div class="input-group">
-              <input type="text" v-model="registerForm.username" :placeholder="$t('login.setUsername')" />
-            </div>
-            <div class="input-group">
-              <div class="password-input-wrapper">
-                <input 
-                  :type="passwordVisibility.register ? 'text' : 'password'" 
-                  v-model="registerForm.password" 
-                  :placeholder="$t('login.setPassword')" 
+          <!-- ── REGISTER FORM ── -->
+          <div v-else key="register" class="form-body">
+            <div class="field">
+              <label class="field-label">{{ $t('login.setUsername') }}</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  v-model="registerForm.username"
+                  :placeholder="$t('login.setUsername')"
+                  class="field-input"
                 />
-                <button 
-                  class="toggle-password-btn"
-                  @click="togglePasswordVisibility('register')"
-                  type="button"
-                >
-                  {{ passwordVisibility.register ? '👁️' : '👁️‍🗨️' }}
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">{{ $t('login.setPassword') }}</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  :type="passwordVisibility.register ? 'text' : 'password'"
+                  v-model="registerForm.password"
+                  :placeholder="$t('login.setPassword')"
+                  class="field-input"
+                />
+                <button class="eye-btn" type="button" @click="togglePasswordVisibility('register')">
+                  <svg v-if="passwordVisibility.register" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
                 </button>
               </div>
             </div>
-            <div class="input-group">
-              <div class="password-input-wrapper">
-                <input 
-                  :type="passwordVisibility.confirm ? 'text' : 'password'" 
-                  v-model="registerForm.confirmPassword" 
-                  :placeholder="$t('login.confirmPassword')" 
+
+            <div class="field">
+              <label class="field-label">{{ $t('login.confirmPassword') }}</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  :type="passwordVisibility.confirm ? 'text' : 'password'"
+                  v-model="registerForm.confirmPassword"
+                  :placeholder="$t('login.confirmPassword')"
+                  class="field-input"
                 />
-                <button 
-                  class="toggle-password-btn"
-                  @click="togglePasswordVisibility('confirm')"
-                  type="button"
-                >
-                  {{ passwordVisibility.confirm ? '👁️' : '👁️‍🗨️' }}
+                <button class="eye-btn" type="button" @click="togglePasswordVisibility('confirm')">
+                  <svg v-if="passwordVisibility.confirm" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
                 </button>
               </div>
             </div>
-            <div class="message" :class="{ error: registerMessage.type === 'error' }" v-if="registerMessage.content">
-              {{ registerMessage.content }}
-            </div>
-            <div class="button-group">
-              <button class="confirm-btn" @click="handleRegister" :disabled="isLoading">
-                {{ isLoading ? $t('login.registering') : $t('login.confirmRegister') }}
-              </button>
-              <button class="back-btn" @click="toggleForm" :disabled="isLoading">{{ $t('login.backToLogin') }}</button>
-            </div>
+
+            <!-- Message -->
+            <transition name="msg-fade">
+              <div v-if="registerMessage.content" class="msg" :class="registerMessage.type">
+                <svg v-if="registerMessage.type === 'error'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {{ registerMessage.content }}
+              </div>
+            </transition>
+
+            <button class="submit-btn" @click="handleRegister" :disabled="isLoading">
+              <span v-if="isLoading" class="loading-dots">
+                <span></span><span></span><span></span>
+              </span>
+              <span v-else>{{ $t('login.confirmRegister') }}</span>
+            </button>
+
+            <div class="divider"><span>{{ $i18n.locale === 'en' ? 'or' : '或者' }}</span></div>
+
+            <button class="switch-btn" @click="toggleForm" :disabled="isLoading">
+              ← {{ $t('login.backToLogin') }}
+            </button>
           </div>
+
         </transition>
       </div>
     </div>
@@ -114,10 +266,11 @@
 
 <script>
 import LangToggle from '../components/LangToggle.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 
 export default {
   name: 'LoginPage',
-  components: { LangToggle },
+  components: { LangToggle, ThemeToggle },
   data() {
     return {
       isRegistering: false,
@@ -160,56 +313,29 @@ export default {
     },
     async handleLogin() {
       if (!this.loginForm.username || !this.loginForm.password) {
-        this.loginMessage = {
-          content: '请填写用户名和密码',
-          type: 'error'
-        };
+        this.loginMessage = { content: this.$t('login.fillAll'), type: 'error' };
         return;
       }
-
       try {
         this.isLoading = true;
         const response = await fetch('http://localhost:3000/api/auth/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.loginForm)
         });
-
         const data = await response.json();
-
         if (response.ok) {
-          this.loginMessage = {
-            content: '登录成功',
-            type: 'success'
-          };
-          
-          console.log('登录成功，用户数据:', data.user);
-          
-          // 保存用户信息到localStorage
+          this.loginMessage = { content: this.$t('login.loginSuccess'), type: 'success' };
           localStorage.setItem('userToken', data.token);
-          localStorage.setItem('userId', String(data.user.id)); // 确保以字符串形式保存
+          localStorage.setItem('userId', String(data.user.id));
           localStorage.setItem('username', data.user.username);
-          
-          // 验证数据是否正确保存
-          console.log('保存到localStorage - token:', data.token);
-          console.log('保存到localStorage - userId:', data.user.id);
-          
-          // 跳转到之前想要访问的页面，如果没有则跳转到主页
-          const redirectPath = this.$route.query.redirect || '/home';
+          const redirectPath = this.$route.query.redirect || '/';
           this.$router.push(redirectPath);
         } else {
-          this.loginMessage = {
-            content: data.message || '登录失败',
-            type: 'error'
-          };
+          this.loginMessage = { content: data.message || this.$t('login.loginFailed'), type: 'error' };
         }
       } catch (error) {
-        this.loginMessage = {
-          content: '网络错误，请稍后重试',
-          type: 'error'
-        };
+        this.loginMessage = { content: this.$t('login.networkError'), type: 'error' };
         console.error('登录错误:', error);
       } finally {
         this.isLoading = false;
@@ -217,55 +343,32 @@ export default {
     },
     async handleRegister() {
       if (!this.registerForm.username || !this.registerForm.password || !this.registerForm.confirmPassword) {
-        this.registerMessage = {
-          content: '请填写所有字段',
-          type: 'error'
-        };
+        this.registerMessage = { content: this.$t('login.fillAllFields'), type: 'error' };
         return;
       }
-
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
-        this.registerMessage = {
-          content: '两次输入的密码不一致',
-          type: 'error'
-        };
+        this.registerMessage = { content: this.$t('login.passwordMismatch'), type: 'error' };
         return;
       }
-
       try {
         this.isLoading = true;
         const response = await fetch('http://localhost:3000/api/auth/register', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: this.registerForm.username,
             password: this.registerForm.password
           })
         });
-
         const data = await response.json();
-
         if (response.ok) {
-          this.registerMessage = {
-            content: '注册成功',
-            type: 'success'
-          };
-          setTimeout(() => {
-            this.toggleForm();
-          }, 3000);
+          this.registerMessage = { content: this.$t('login.registerSuccess'), type: 'success' };
+          setTimeout(() => { this.toggleForm(); }, 1500);
         } else {
-          this.registerMessage = {
-            content: data.message || '注册失败',
-            type: 'error'
-          };
+          this.registerMessage = { content: data.message || this.$t('login.registerFailed'), type: 'error' };
         }
       } catch (error) {
-        this.registerMessage = {
-          content: '网络错误，请稍后重试',
-          type: 'error'
-        };
+        this.registerMessage = { content: this.$t('login.networkError'), type: 'error' };
         console.error('注册错误:', error);
       } finally {
         this.isLoading = false;
@@ -275,257 +378,388 @@ export default {
 }
 </script>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background-color: #1a1a1a;
-}
-
-.app-container {
+<style scoped>
+/* ─────────── Reset / Root ─────────── */
+.auth-root {
   display: flex;
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background: var(--login-bg);
+  color: var(--text-1);
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   position: relative;
 }
 
-.lang-toggle-fixed {
+.toggles-fixed {
   position: fixed;
   top: 20px;
   right: 24px;
-  z-index: 100;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 50px;
 }
 
-.description-section {
+/* ─────────── LEFT PANEL ─────────── */
+.left-panel {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  position: relative;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--login-panel-from) 0%, var(--login-panel-to) 50%, var(--login-panel-from) 100%);
+  padding: 3rem;
 }
 
-.description-content {
-  text-align: center;
-  z-index: 1;
-}
-
-.title {
-  font-size: 2.5rem;
-  margin-bottom: 1.5rem;
-  color: #ffffff;
-}
-
-.description {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-}
-
-.highlight {
-  color: #4CAF50;
-  font-weight: bold;
-  display: block;
-  margin-top: 0.5rem;
-}
-
-.animated-circles {
+/* Grid overlay */
+.grid-overlay {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74, 222, 128, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 222, 128, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
 }
 
-.circle {
+/* Decorative orbs */
+.orb {
   position: absolute;
   border-radius: 50%;
-  background: rgba(76, 175, 80, 0.1);
-  animation: float 8s infinite;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.orb-1 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(74, 222, 128, 0.18), transparent 70%);
+  top: -100px; left: -100px;
+  animation: orbFloat 10s ease-in-out infinite;
+}
+.orb-2 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.14), transparent 70%);
+  bottom: -80px; right: -60px;
+  animation: orbFloat 13s ease-in-out infinite reverse;
+}
+.orb-3 {
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.12), transparent 70%);
+  top: 50%; left: 60%;
+  animation: orbFloat 8s ease-in-out infinite 2s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(20px, -30px) scale(1.05); }
 }
 
-.circle:nth-child(1) {
-  width: 150px;
-  height: 150px;
-  left: 10%;
-  top: 20%;
-  animation-delay: 0s;
+/* Brand content */
+.brand-content {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
 }
 
-.circle:nth-child(2) {
-  width: 100px;
-  height: 100px;
-  left: 60%;
-  top: 40%;
-  animation-delay: 2s;
+.logo-mark {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 16px rgba(74, 222, 128, 0.5));
 }
 
-.circle:nth-child(3) {
-  width: 80px;
-  height: 80px;
-  left: 30%;
-  top: 60%;
-  animation-delay: 4s;
+.brand-title {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 1rem;
+  background: linear-gradient(135deg, #4ade80 0%, #22d3ee 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-@keyframes float {
-  0% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-  100% { transform: translateY(0) rotate(360deg); }
+.brand-subtitle {
+  font-size: 1rem;
+  color: var(--login-text-sub);
+  line-height: 1.6;
+  margin-bottom: 0.4rem;
 }
 
-.login-section {
+.brand-highlight {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #4ade80;
+  margin-bottom: 2.5rem;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feature-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--login-card-border);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  transition: border-color 0.2s, background 0.2s;
+}
+.feature-chip:hover {
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.05);
+}
+.chip-icon { font-size: 1.1rem; }
+
+/* ─────────── RIGHT PANEL ─────────── */
+.right-panel {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-}
-
-.login-card {
-  background-color: #2a2a2a;
   padding: 2.5rem;
-  border-radius: 15px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--login-bg);
 }
 
-.login-card h2 {
-  text-align: center;
+.form-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  border-radius: 20px;
+  padding: 2.5rem 2.5rem 2rem;
+  box-shadow:
+    0 0 0 1px rgba(74, 222, 128, 0.05),
+    0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* Card header */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
   margin-bottom: 2rem;
-  color: #ffffff;
+}
+.card-logo {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.card-title-block { flex: 1; }
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0 0 0.25rem;
+}
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--login-text-muted);
+  margin: 0;
 }
 
-.input-group {
-  margin-bottom: 1.5rem;
+/* Form body */
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.input-group input {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background-color: #3a3a3a;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
+/* Fields */
+.field {
+  margin-bottom: 1.1rem;
 }
-
-.input-group input::placeholder {
-  color: #888;
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--login-text-sub);
+  margin-bottom: 0.45rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
-
-.password-input-wrapper {
+.field-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
-
-.password-input-wrapper input {
-  padding-right: 45px;
+.field-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--login-icon);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: color 0.2s;
 }
-
-.toggle-password-btn {
+.field-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 42px;
+  background: var(--login-input-bg);
+  border: 1px solid var(--login-card-border);
+  border-radius: 10px;
+  color: var(--text-1);
+  font-size: 0.92rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.field-input::placeholder { color: var(--login-icon); }
+.field-input:focus {
+  border-color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
+}
+.field-input:focus + .field-icon,
+.field-input-wrap:focus-within .field-icon {
+  color: #4ade80;
+}
+.eye-btn {
   position: absolute;
   right: 12px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
-  font-size: 1.2rem;
-  color: #888;
+  color: var(--login-icon);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  transition: color 0.2s;
+}
+.eye-btn:hover { color: #4ade80; }
+
+/* Message */
+.msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.msg.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.msg.success {
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+/* Submit button */
+.submit-btn {
+  width: 100%;
+  height: 46px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: var(--text-1);
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
-  line-height: 1;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.25);
 }
-
-.toggle-password-btn:hover {
-  color: #4CAF50;
+.submit-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.35);
 }
+.submit-btn:active:not(:disabled) { transform: translateY(0); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.button-group {
+/* Loading dots */
+.loading-dots {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: 5px;
+  align-items: center;
+}
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40%            { transform: scale(1);   opacity: 1; }
 }
 
-.button-group button {
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: var(--border-solid);
+  font-size: 0.78rem;
+}
+.divider::before,
+.divider::after {
+  content: '';
   flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.button-group button:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
-}
-
-.login-btn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.register-btn {
-  background-color: #2196F3;
-  color: white;
-}
-
-.form-container {
+/* Switch button */
+.switch-btn {
   width: 100%;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.confirm-btn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.back-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-.message {
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 4px;
-  text-align: center;
+  height: 44px;
+  background: transparent;
+  color: var(--login-text-sub);
+  border: 1px solid var(--login-card-border);
+  border-radius: 10px;
   font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
+.switch-btn:hover:not(:disabled) {
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.04);
+}
+.switch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.message.error {
-  background-color: rgba(244, 67, 54, 0.1);
-  color: #f44336;
+/* ─────────── Transitions ─────────── */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
+.fade-slide-enter-from { opacity: 0; transform: translateY(10px); }
+.fade-slide-leave-to   { opacity: 0; transform: translateY(-10px); }
 
-.message.success {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4CAF50;
+.slide-title-enter-active,
+.slide-title-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
+.slide-title-enter-from { opacity: 0; transform: translateX(8px); }
+.slide-title-leave-to   { opacity: 0; transform: translateX(-8px); }
 
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.msg-fade-enter-active,
+.msg-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.msg-fade-enter-from   { opacity: 0; transform: translateY(-4px); }
+.msg-fade-leave-to     { opacity: 0; }
+
+/* ─────────── Responsive ─────────── */
+@media (max-width: 768px) {
+  .left-panel { display: none; }
+  .right-panel { padding: 1.5rem; }
+  .form-card   { padding: 2rem 1.5rem; }
 }
-</style> 
+</style>

@@ -38,20 +38,21 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--border);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 5px 10px 5px 8px;
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
   user-select: none;
+  color: var(--text-1);
 }
 
 .lang-toggle:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--accent-light);
   border-color: rgba(76, 175, 80, 0.5);
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.25);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 /* 轨道 */
@@ -59,7 +60,7 @@ export default {
   position: relative;
   width: 28px;
   height: 16px;
-  background: #3a3a3a;
+  background: var(--bg-3);
   border-radius: 8px;
   transition: background 0.3s ease;
   flex-shrink: 0;
@@ -91,7 +92,7 @@ export default {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: #ffffff;
+  color: var(--text-1);
   transition: opacity 0.25s ease, color 0.25s ease;
   line-height: 1;
 }

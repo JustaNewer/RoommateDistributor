@@ -8,8 +8,12 @@
     <header class="header">
       <div class="header-content">
         <h1>{{ $t('nav.title') }}</h1>
-        <div class="user-info">
+        <!-- 两个切换按钮绝对定位到 header 正中 -->
+        <div class="header-toggles">
+          <ThemeToggle />
           <LangToggle />
+        </div>
+        <div class="user-info">
           <div class="avatar-container">
             <div class="avatar" @click="toggleDropdown">
               <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="avatar-img">
@@ -183,13 +187,15 @@
 import SidePanel from '../components/SidePanel.vue'
 import SystemToast from '../components/Toast.vue'
 import LangToggle from '../components/LangToggle.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 
 export default {
   name: 'HomePage',
   components: {
     SidePanel,
     SystemToast,
-    LangToggle
+    LangToggle,
+    ThemeToggle
   },
   data() {
     return {
@@ -358,14 +364,14 @@ export default {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
 }
 
 .header {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .header-content {
@@ -387,10 +393,6 @@ export default {
   gap: 1rem;
 }
 
-/* LangToggle 在头像左侧 50px 的间距由 gap 控制 */
-.user-info .lang-toggle {
-  margin-right: 2px;
-}
 
 .logout-btn {
   padding: 0.5rem 1rem;
@@ -437,10 +439,10 @@ export default {
 .search-input {
   flex: 1;
   padding: 1rem 1.5rem;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-2);
+  border: 1px solid var(--border-solid);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--text-1);
   font-size: 1.1rem;
   transition: all 0.3s ease;
 }
@@ -449,22 +451,22 @@ export default {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-  background-color: #333;
+  background-color: var(--bg-3);
 }
 
 .search-btn {
   padding: 1rem 1.5rem;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-2);
+  border: 1px solid var(--border-solid);
   border-radius: 12px;
-  color: #888;
+  color: var(--text-3);
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1.2rem;
 }
 
 .search-btn:hover {
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   color: #4CAF50;
   border-color: #4CAF50;
 }
@@ -515,7 +517,7 @@ export default {
 
 .action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .create-room-btn:hover {
@@ -559,9 +561,9 @@ export default {
   position: absolute;
   top: 120%;
   left: 0;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
   min-width: 150px;
   z-index: 1000;
   overflow: hidden;
@@ -573,11 +575,11 @@ export default {
   align-items: center;
   cursor: pointer;
   transition: background-color 0.2s;
-  color: #ffffff;
+  color: var(--text-1);
 }
 
 .dropdown-item:hover {
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
 }
 
 .menu-icon {
@@ -597,7 +599,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -605,16 +607,16 @@ export default {
 }
 
 .modal-content {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px var(--shadow);
 }
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -628,7 +630,7 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-3);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -637,7 +639,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #fff;
+  color: var(--text-1);
 }
 
 .modal-body {
@@ -646,7 +648,7 @@ export default {
 
 .placeholder-text {
   text-align: center;
-  color: #888;
+  color: var(--text-3);
   font-style: italic;
 }
 
@@ -658,9 +660,9 @@ export default {
 }
 
 .create-room-form {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px var(--shadow);
   width: 500px;
   max-height: calc(80vh - 120px);
   overflow-y: auto;
@@ -672,12 +674,12 @@ export default {
 .form-header {
   position: sticky;
   top: 0;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1.5rem 2rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   z-index: 10;
   flex-shrink: 0;
 }
@@ -707,10 +709,10 @@ export default {
 .form-input {
   width: 100%;
   padding: 0.5rem;
-  background-color: #3a3a3a;
-  border: 1px solid #4a4a4a;
+  background-color: var(--bg-3);
+  border: 1px solid var(--border-solid);
   border-radius: 4px;
-  color: #ffffff;
+  color: var(--text-1);
 }
 
 .radio-group {
@@ -739,7 +741,7 @@ export default {
 .form-footer {
   padding: 1rem 2rem 1.5rem;
   text-align: right;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   flex-shrink: 0;
 }
 

@@ -5,7 +5,10 @@
         {{ $t('search.back') }}
       </button>
       <h1>{{ $t('search.title') }}</h1>
-      <LangToggle />
+      <div class="header-toggles">
+        <ThemeToggle />
+        <LangToggle />
+      </div>
     </header>
 
     <main class="results-content">
@@ -34,13 +37,15 @@
 
 <script>
 import DormCard from '../components/DormCard.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'SearchResults',
   components: {
     DormCard,
-    LangToggle
+    LangToggle,
+    ThemeToggle
   },
   data() {
     return {
@@ -158,18 +163,18 @@ export default {
 <style scoped>
 .search-results {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
   padding-bottom: 2rem;
 }
 
 .results-header {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   gap: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
   margin-bottom: 2rem;
 }
 
@@ -201,14 +206,14 @@ export default {
 .loading-state {
   text-align: center;
   padding: 3rem;
-  color: #888;
+  color: var(--text-3);
   font-size: 1.2rem;
 }
 
 .no-results {
   text-align: center;
   padding: 3rem;
-  color: #888;
+  color: var(--text-3);
   display: flex;
   flex-direction: column;
   align-items: center;

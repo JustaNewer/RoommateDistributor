@@ -6,7 +6,10 @@
           {{ $t('common.backHome') }}
         </button>
         <h1>{{ $t('profile.title') }}</h1>
-        <LangToggle />
+        <div class="header-toggles">
+          <ThemeToggle />
+          <LangToggle />
+        </div>
       </div>
     </header>
 
@@ -136,13 +139,15 @@
 
 <script>
 import AIAvatarModal from '../components/AIAvatarModal.vue';
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue';
 
 export default {
   name: 'ProfilePage',
   components: {
     AIAvatarModal,
-    LangToggle
+    LangToggle,
+    ThemeToggle
   },
   data() {
     return {
@@ -300,14 +305,14 @@ export default {
 <style scoped>
 .profile-container {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
 }
 
 .profile-header {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .header-content {
@@ -349,10 +354,10 @@ export default {
 }
 
 .profile-card {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .avatar-section {
@@ -427,7 +432,7 @@ export default {
 .personality-section {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--border-solid);
 }
 
 h2 {
@@ -449,7 +454,7 @@ h2 {
 input {
   width: 100%;
   padding: 0.8rem;
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   border: none;
   border-radius: 4px;
   color: white;
@@ -457,7 +462,7 @@ input {
 }
 
 input::placeholder {
-  color: #888;
+  color: var(--text-3);
 }
 
 .submit-btn {
@@ -476,7 +481,7 @@ input::placeholder {
 }
 
 .test-description {
-  color: #888;
+  color: var(--text-3);
   margin-bottom: 1.5rem;
   line-height: 1.6;
 }
@@ -520,7 +525,7 @@ input::placeholder {
   cursor: pointer;
   padding: 0;
   font-size: 1.2rem;
-  color: #888;
+  color: var(--text-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -538,7 +543,7 @@ input::placeholder {
 .tags-container {
   margin: 1.5rem 0;
   padding: 1rem;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 8px;
 }
 
@@ -555,7 +560,7 @@ input::placeholder {
 }
 
 .tag {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   color: #2196F3;
   padding: 0.5rem 1rem;
   border-radius: 20px;

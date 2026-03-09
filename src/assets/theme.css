@@ -1,0 +1,105 @@
+/* ============================================
+   Global Theme Variables
+   dark (default) | light
+   ============================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-1: #1a1a1a;       /* main page bg */
+  --bg-2: #2a2a2a;       /* card / header / panel */
+  --bg-3: #3a3a3a;       /* input / secondary panel */
+  --bg-4: #242424;       /* subtle alternate bg */
+
+  /* Text */
+  --text-1: #ffffff;     /* primary */
+  --text-2: #cccccc;     /* secondary */
+  --text-3: #888888;     /* muted / placeholder */
+  --text-4: #666666;     /* extra muted */
+
+  /* Borders */
+  --border:       rgba(255, 255, 255, 0.1);
+  --border-solid: #3a3a3a;
+
+  /* Shadows */
+  --shadow:       rgba(0, 0, 0, 0.3);
+  --shadow-sm:    rgba(0, 0, 0, 0.2);
+
+  /* Overlay */
+  --overlay: rgba(0, 0, 0, 0.7);
+
+  /* Accent (unchanged across themes) */
+  --accent:       #4CAF50;
+  --accent-hover: #45a049;
+  --accent-light: rgba(76, 175, 80, 0.1);
+  --accent-glow:  rgba(76, 175, 80, 0.25);
+
+  /* Login page specific */
+  --login-bg:          #0d0d0f;
+  --login-panel-from:  #0d1117;
+  --login-panel-to:    #0f1923;
+  --login-card-bg:     #141418;
+  --login-input-bg:    #1e1e24;
+  --login-card-border: rgba(255, 255, 255, 0.08);
+  --login-text-sub:    #94a3b8;
+  --login-text-muted:  #64748b;
+  --login-icon:        #475569;
+
+  /* Transition speed */
+  --theme-transition: 0.3s ease;
+}
+
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-1: #f0f2f5;
+  --bg-2: #ffffff;
+  --bg-3: #edf0f7;
+  --bg-4: #f8f9fb;
+
+  /* Text */
+  --text-1: #1a1a2e;
+  --text-2: #4a5568;
+  --text-3: #718096;
+  --text-4: #94a3b8;
+
+  /* Borders */
+  --border:       rgba(0, 0, 0, 0.1);
+  --border-solid: #e2e8f0;
+
+  /* Shadows */
+  --shadow:    rgba(0, 0, 0, 0.12);
+  --shadow-sm: rgba(0, 0, 0, 0.07);
+
+  /* Overlay */
+  --overlay: rgba(0, 0, 0, 0.5);
+
+  /* Accent unchanged */
+  --accent:       #4CAF50;
+  --accent-hover: #43a047;
+  --accent-light: rgba(76, 175, 80, 0.08);
+  --accent-glow:  rgba(76, 175, 80, 0.18);
+
+  /* Login page specific */
+  --login-bg:          #f8fafc;
+  --login-panel-from:  #ebf5fb;
+  --login-panel-to:    #f0faff;
+  --login-card-bg:     #ffffff;
+  --login-input-bg:    #f8fafc;
+  --login-card-border: rgba(0, 0, 0, 0.1);
+  --login-text-sub:    #4a5568;
+  --login-text-muted:  #718096;
+  --login-icon:        #94a3b8;
+}
+
+/* ── Global smooth transition for ALL elements ── */
+*,
+*::before,
+*::after {
+  transition:
+    background-color var(--theme-transition),
+    border-color     var(--theme-transition),
+    color            var(--theme-transition),
+    box-shadow       var(--theme-transition);
+}
+
+/* Exempt transitions that shouldn't be slowed */
+* { transition-property: background-color, border-color, color, box-shadow; }

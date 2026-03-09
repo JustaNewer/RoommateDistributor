@@ -5,7 +5,10 @@
         {{ $t('personalityTest.back') }}
       </button>
       <h1>{{ $t('personalityTest.title') }}</h1>
-      <LangToggle />
+      <div class="header-toggles">
+        <ThemeToggle />
+        <LangToggle />
+      </div>
     </header>
 
     <main class="chat-content" ref="chatContent">
@@ -66,11 +69,14 @@
 </template>
 
 <script>
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'PersonalityTest',
-  components: { LangToggle },
+  components: { LangToggle,
+    ThemeToggle
+  },
   data() {
     return {
       messages: [],
@@ -441,8 +447,8 @@ export default {
 <style scoped>
 .chat-container {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
   padding-top: 70px; /* 为固定header留出空间 */
   display: flex;
   flex-direction: column;
@@ -457,13 +463,13 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   gap: 2rem;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .back-btn {
@@ -558,7 +564,7 @@ export default {
 }
 
 .message-content {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem;
   border-radius: 12px;
   max-width: 70%;
@@ -589,7 +595,7 @@ export default {
 
 .message-time {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-3);
   text-align: right;
 }
 
@@ -605,7 +611,7 @@ export default {
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-top: 1px solid #2a2a2a;
   position: fixed;
   bottom: 0;
@@ -621,7 +627,7 @@ export default {
 input {
   flex: 1;
   padding: 1rem;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border: none;
   border-radius: 8px;
   color: white;
@@ -662,7 +668,7 @@ input:focus {
 
 .option-btn {
   padding: 0.8rem 1.5rem;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border: 1px solid #4CAF50;
   color: #4CAF50;
   border-radius: 8px;
@@ -686,7 +692,7 @@ input:focus {
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--bg-1);
 }
 
 .messages-container::-webkit-scrollbar-thumb {
@@ -711,7 +717,7 @@ input:focus {
   font-size: 1rem;
   transition: all 0.2s;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .back-to-top:hover {

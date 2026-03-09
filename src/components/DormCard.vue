@@ -172,24 +172,24 @@ export default {
 
 <style scoped>
 .dorm-card {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   overflow: hidden;
   width: 100%;
   transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-solid);
   cursor: pointer;
   position: relative;
 }
 
 .dorm-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .dorm-header {
   padding: 1rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -206,11 +206,11 @@ export default {
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
 }
 
 .creator-name {
-  color: #ffffff;
+  color: var(--text-1);
   font-size: 0.9rem;
 }
 
@@ -294,20 +294,20 @@ export default {
 }
 
 .school-name {
-  color: #888;
+  color: var(--text-3);
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
 }
 
 .hash-container {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   padding: 0.75rem;
   border-radius: 6px;
   margin-top: 1rem;
 }
 
 .hash-label {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.85rem;
   display: block;
   margin-bottom: 0.5rem;
@@ -353,9 +353,9 @@ export default {
 }
 
 .info-item {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.85rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
 }
@@ -390,7 +390,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -398,7 +398,7 @@ export default {
 }
 
 .confirm-dialog {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 8px;
   padding: 1.5rem;
   width: 90%;
@@ -413,7 +413,7 @@ export default {
 }
 
 .confirm-dialog p {
-  color: #fff;
+  color: var(--text-1);
   margin-bottom: 1.5rem;
 }
 

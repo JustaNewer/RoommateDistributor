@@ -75,7 +75,7 @@ export default {
 }
 
 .panel-content {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

@@ -5,7 +5,10 @@
         {{ $t('dormDetail.back') }}
       </button>
       <h1>{{ dormData.dorm_name || $t('dormDetail.loading') }}</h1>
-      <LangToggle />
+      <div class="header-toggles">
+        <ThemeToggle />
+        <LangToggle />
+      </div>
       
       <!-- 添加垃圾桶图标 -->
       <div 
@@ -29,33 +32,33 @@
       <template v-else>
         <div class="dorm-info">
           <div class="info-item">
-            <span class="label">学校：</span>
+            <span class="label">{{ $t('dormDetail.school') }}：</span>
             <span class="value">{{ dormData.school_name }}</span>
           </div>
           <div class="info-item">
-            <span class="label">容量：</span>
-            <span class="value">{{ dormData.space }}人间</span>
+            <span class="label">{{ $t('dormDetail.capacity') }}：</span>
+            <span class="value">{{ dormData.space }}{{ $t('dormDetail.person') }}</span>
           </div>
           <div class="info-item">
-            <span class="label">楼层：</span>
-            <span class="value">{{ dormData.floor_count }}层</span>
+            <span class="label">{{ $t('dormDetail.floors') }}：</span>
+            <span class="value">{{ dormData.floor_count }}{{ $t('dormDetail.floorUnit') }}</span>
           </div>
           <div class="info-item">
-            <span class="label">每层房间：</span>
-            <span class="value">{{ dormData.rooms_per_floor }}间</span>
+            <span class="label">{{ $t('dormDetail.roomsPerFloor') }}：</span>
+            <span class="value">{{ dormData.rooms_per_floor }}{{ $t('dormDetail.roomUnit') }}</span>
           </div>
           <div class="info-item occupancy-legend">
             <span class="legend-item">
               <span class="bed-icon empty"></span>
-              <span>空床位</span>
+              <span>{{ $t('dormDetail.emptyLabel') }}</span>
             </span>
             <span class="legend-item">
               <span class="bed-icon occupied"></span>
-              <span>已入住</span>
+              <span>{{ $t('dormDetail.occupiedLabel') }}</span>
             </span>
             <span v-if="isDragging" class="legend-item">
               <span class="bed-icon dragging"></span>
-              <span>拖动中</span>
+              <span>{{ $t('dormDetail.dragging') }}</span>
             </span>
           </div>
         </div>
@@ -158,11 +161,14 @@
 </template>
 
 <script>
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'DormDetail',
-  components: { LangToggle },
+  components: { LangToggle,
+    ThemeToggle
+  },
   data() {
     return {
       loading: true,
@@ -967,18 +973,18 @@ export default {
 <style scoped>
 .dorm-detail {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
   padding-bottom: 2rem;
 }
 
 .detail-header {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   gap: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-sm);
   margin-bottom: 2rem;
   position: relative;
 }
@@ -1014,7 +1020,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .loading-spinner {
@@ -1032,7 +1038,7 @@ export default {
 }
 
 .dorm-info {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -1069,7 +1075,7 @@ export default {
 }
 
 .bed-icon.empty {
-  background-color: #333;
+  background-color: var(--bg-3);
   border: 1px solid #444;
 }
 
@@ -1084,7 +1090,7 @@ export default {
 }
 
 .label {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.9rem;
 }
 
@@ -1100,7 +1106,7 @@ export default {
 }
 
 .floor {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   padding: 1.5rem;
 }
@@ -1109,7 +1115,7 @@ export default {
   color: #4CAF50;
   margin-bottom: 1.5rem;
   font-size: 1.2rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   padding-bottom: 0.5rem;
 }
 
@@ -1120,10 +1126,10 @@ export default {
 }
 
 .room {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 8px;
   padding: 1rem;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-solid);
   transition: all 0.3s ease;
 }
 
@@ -1145,7 +1151,7 @@ export default {
 }
 
 .room-number {
-  color: #888;
+  color: var(--text-3);
   font-size: 1rem;
   font-weight: bold;
 }
@@ -1166,7 +1172,7 @@ export default {
 
 .bed {
   aspect-ratio: 1;
-  background-color: #333;
+  background-color: var(--bg-3);
   border-radius: 4px;
   transition: all 0.3s ease;
   border: 1px solid #444;
@@ -1243,7 +1249,7 @@ export default {
   height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border: 1px solid #4CAF50;
   box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
@@ -1261,7 +1267,7 @@ export default {
   align-items: center;
   justify-content: center;
   background-color: #4CAF50;
-  color: #fff;
+  color: var(--text-1);
   font-weight: bold;
 }
 
@@ -1271,7 +1277,7 @@ export default {
 
 .tooltip-username {
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--text-1);
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -1300,7 +1306,7 @@ export default {
   background-color: rgba(42, 42, 42, 0.9);
   padding: 10px 20px;
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-1);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   animation: fade-in 0.3s ease;
@@ -1394,7 +1400,7 @@ export default {
 .confirm-dialog {
   width: 90%;
   max-width: 400px;
-  background: #2a2a2a;
+  background: var(--bg-2);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -1402,9 +1408,9 @@ export default {
 }
 
 .confirm-dialog-header {
-  background: #1a1a1a;
+  background: var(--bg-1);
   padding: 1rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
 }
 
 .confirm-dialog-header h3 {
@@ -1473,7 +1479,7 @@ export default {
   display: flex;
   padding: 1rem;
   background: #222;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--border-solid);
 }
 
 .confirm-dialog-actions button {
@@ -1491,7 +1497,7 @@ export default {
 }
 
 .cancel-btn {
-  background: #333;
+  background: var(--bg-3);
   color: #ddd;
   margin-right: 0.8rem;
 }
@@ -1531,7 +1537,7 @@ export default {
 
 .no-tags {
   font-size: 0.7rem;
-  color: #888;
+  color: var(--text-3);
   font-style: italic;
   margin-top: 5px;
 }

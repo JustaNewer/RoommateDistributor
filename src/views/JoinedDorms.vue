@@ -2,7 +2,10 @@
   <div class="joined-dorms">
     <header class="page-header">
       <h2>{{ $t('joinedDorms.title') }}</h2>
-      <LangToggle />
+      <div class="header-toggles">
+        <ThemeToggle />
+        <LangToggle />
+      </div>
       <button class="back-btn" @click="$router.push(localePath('/'))">{{ $t('common.backHome') }}</button>
     </header>
 
@@ -54,11 +57,14 @@
 </template>
 
 <script>
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'JoinedDorms',
-  components: { LangToggle },
+  components: { LangToggle,
+    ThemeToggle
+  },
   data() {
     return {
       loading: true,
@@ -120,8 +126,8 @@ export default {
 <style scoped>
 .joined-dorms {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
   padding: 2rem;
 }
 
@@ -140,16 +146,16 @@ export default {
 
 .back-btn {
   padding: 0.5rem 1rem;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-2);
+  border: 1px solid var(--border-solid);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--text-1);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   transform: translateY(-2px);
 }
 
@@ -164,7 +170,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .loading-spinner {
@@ -184,7 +190,7 @@ export default {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #888;
+  color: var(--text-3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -226,24 +232,24 @@ export default {
 }
 
 .dorm-card {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   overflow: hidden;
   width: 100%;
   transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-solid);
   cursor: pointer;
   position: relative;
 }
 
 .dorm-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .dorm-header {
   padding: 1rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -260,11 +266,11 @@ export default {
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
 }
 
 .creator-name {
-  color: #ffffff;
+  color: var(--text-1);
   font-size: 0.9rem;
 }
 
@@ -295,13 +301,13 @@ export default {
 }
 
 .school-name {
-  color: #888;
+  color: var(--text-3);
   margin: 0 0 1rem 0;
   font-size: 0.9rem;
 }
 
 .room-info {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   padding: 0.75rem;
   border-radius: 6px;
   margin: 1rem 0;
@@ -311,7 +317,7 @@ export default {
 }
 
 .info-label {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.85rem;
 }
 
@@ -329,9 +335,9 @@ export default {
 }
 
 .info-item {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.85rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
 }

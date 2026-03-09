@@ -97,7 +97,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,16 +105,16 @@ export default {
 }
 
 .modal-content {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px var(--shadow);
 }
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -128,7 +128,7 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-3);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -137,7 +137,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #fff;
+  color: var(--text-1);
 }
 
 .modal-body {
@@ -151,16 +151,16 @@ export default {
 .input-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 textarea {
   width: 100%;
   padding: 0.8rem;
-  background-color: #3a3a3a;
-  border: 1px solid #4a4a4a;
+  background-color: var(--bg-3);
+  border: 1px solid var(--border-solid);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-1);
   font-size: 1rem;
   resize: vertical;
   transition: border-color 0.2s;
@@ -172,7 +172,7 @@ textarea:focus {
 }
 
 textarea::placeholder {
-  color: #666;
+  color: var(--text-4);
 }
 
 .generate-btn {
@@ -200,14 +200,14 @@ textarea::placeholder {
 .hint-text {
   margin-top: 0.5rem;
   font-size: 0.85rem;
-  color: #888;
+  color: var(--text-3);
   line-height: 1.5;
 }
 
 .examples {
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 8px;
 }
 
@@ -225,13 +225,13 @@ textarea::placeholder {
 
 .example-tag {
   padding: 0.4rem 0.8rem;
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   color: #4CAF50;
   border-radius: 16px;
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--border-solid);
 }
 
 .example-tag:hover {

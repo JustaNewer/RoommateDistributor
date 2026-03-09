@@ -2,7 +2,10 @@
   <div class="created-dorms">
     <header class="page-header">
       <h2>{{ $t('createdDorms.title') }}</h2>
-      <LangToggle />
+      <div class="header-toggles">
+        <ThemeToggle />
+        <LangToggle />
+      </div>
       <button class="back-btn" @click="$router.push(localePath('/'))">{{ $t('common.backHome') }}</button>
     </header>
 
@@ -285,13 +288,15 @@
 
 <script>
 import DormCard from '../components/DormCard.vue'
+import ThemeToggle from '../components/ThemeToggle.vue'
 import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'CreatedDorms',
   components: {
     DormCard,
-    LangToggle
+    LangToggle,
+    ThemeToggle
   },
   data() {
     return {
@@ -683,8 +688,8 @@ export default {
 <style scoped>
 .created-dorms {
   min-height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--bg-1);
+  color: var(--text-1);
   padding: 2rem;
 }
 
@@ -703,16 +708,16 @@ export default {
 
 .back-btn {
   padding: 0.5rem 1rem;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-2);
+  border: 1px solid var(--border-solid);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--text-1);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   transform: translateY(-2px);
 }
 
@@ -732,7 +737,7 @@ export default {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .create-btn {
@@ -759,7 +764,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -767,7 +772,7 @@ export default {
 }
 
 .modal-content {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
@@ -777,13 +782,13 @@ export default {
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: sticky;
   top: 0;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   z-index: 1;
 }
 
@@ -795,7 +800,7 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-3);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -803,7 +808,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #fff;
+  color: var(--text-1);
 }
 
 .modal-body {
@@ -812,7 +817,7 @@ export default {
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #3a3a3a;
+  border-top: 1px solid var(--border-solid);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
@@ -825,16 +830,16 @@ export default {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #ccc;
+  color: var(--text-2);
 }
 
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  background-color: #3a3a3a;
-  border: 1px solid #4a4a4a;
+  background-color: var(--bg-3);
+  border: 1px solid var(--border-solid);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-1);
   font-size: 1rem;
 }
 
@@ -908,7 +913,7 @@ export default {
   padding: 1rem 2rem;
   border-radius: 6px;
   z-index: 2000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 /* 申请管理模态窗口样式 */
@@ -920,7 +925,7 @@ export default {
 .empty-applications {
   text-align: center;
   padding: 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .applications-list {
@@ -937,7 +942,7 @@ export default {
 .applications-header {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #3a3a3a;
+  border-bottom: 1px solid var(--border-solid);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1014,7 +1019,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1.2rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 10px;
   border: 1px solid #2a2a2a;
   transition: all 0.2s;
@@ -1023,7 +1028,7 @@ export default {
 }
 
 .application-item:hover {
-  border-color: #3a3a3a;
+  border-color: var(--border-solid);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transform: translateY(-2px);
 }
@@ -1055,7 +1060,7 @@ export default {
 
 .user-name {
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .user-tags {
@@ -1064,7 +1069,7 @@ export default {
 }
 
 .application-time {
-  color: #888;
+  color: var(--text-3);
   font-size: 0.8rem;
 }
 
@@ -1106,7 +1111,7 @@ export default {
 .empty-assignment-results {
   text-align: center;
   padding: 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .assignment-results-list {
@@ -1120,7 +1125,7 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 10px;
   border: 1px solid #2a2a2a;
   margin-bottom: 1rem;
@@ -1138,18 +1143,18 @@ export default {
 
 .result-text h4 {
   margin: 0;
-  color: #fff;
+  color: var(--text-1);
   font-size: 1.5rem;
 }
 
 .result-text p {
   margin: 0;
-  color: #888;
+  color: var(--text-3);
   font-size: 1rem;
 }
 
 .room-assignment-card {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 10px;
   border: 1px solid #2a2a2a;
   padding: 1.5rem;
@@ -1165,7 +1170,7 @@ export default {
 
 .room-number {
   font-size: 1rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .occupants-count {
@@ -1183,9 +1188,9 @@ export default {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 6px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-solid);
 }
 
 .user-avatar {
@@ -1209,7 +1214,7 @@ export default {
 
 .user-name {
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .user-tags {
@@ -1226,7 +1231,7 @@ export default {
 .empty-room-occupants {
   text-align: center;
   padding: 2rem;
-  color: #888;
+  color: var(--text-3);
 }
 
 .room-occupants-list {
@@ -1236,7 +1241,7 @@ export default {
 }
 
 .room-occupant-item {
-  background-color: #1a1a1a;
+  background-color: var(--bg-1);
   border-radius: 10px;
   border: 1px solid #2a2a2a;
   padding: 1.5rem;
@@ -1252,7 +1257,7 @@ export default {
 
 .room-number {
   font-size: 1rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .occupants-count {
@@ -1270,9 +1275,9 @@ export default {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 6px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--border-solid);
 }
 
 .user-avatar {
@@ -1296,7 +1301,7 @@ export default {
 
 .user-name {
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .user-tags {
@@ -1306,7 +1311,7 @@ export default {
 
 .empty-occupants {
   padding: 1rem;
-  color: #888;
+  color: var(--text-3);
   font-style: italic;
 }
 
@@ -1345,7 +1350,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1353,7 +1358,7 @@ export default {
 }
 
 .progress-container {
-  background-color: #2a2a2a;
+  background-color: var(--bg-2);
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
@@ -1364,7 +1369,7 @@ export default {
 
 .progress-bar-container {
   height: 20px;
-  background-color: #3a3a3a;
+  background-color: var(--bg-3);
   border-radius: 10px;
   margin-bottom: 1rem;
 }
@@ -1381,7 +1386,7 @@ export default {
 }
 
 .progress-container p {
-  color: #fff;
+  color: var(--text-1);
   text-align: center;
 }
 
