@@ -1,20 +1,21 @@
 <template>
   <div class="joined-dorms">
     <header class="page-header">
-      <h2>我加入的宿舍</h2>
-      <button class="back-btn" @click="$router.push('/')">返回首页</button>
+      <h2>{{ $t('joinedDorms.title') }}</h2>
+      <LangToggle />
+      <button class="back-btn" @click="$router.push(localePath('/'))">{{ $t('common.backHome') }}</button>
     </header>
 
     <div class="joined-dorms-container">
       <div v-if="loading" class="loading-state">
         <div class="loading-spinner"></div>
-        <p>加载中...</p>
+        <p>{{ $t('joinedDorms.loading') }}</p>
       </div>
 
       <div v-else-if="dorms.length === 0" class="empty-state">
         <div class="empty-icon">🏠</div>
-        <p>暂未加入任何宿舍</p>
-        <button class="search-btn" @click="$router.push('/')">查找宿舍</button>
+        <p>{{ $t('joinedDorms.noDorms') }}</p>
+        <button class="search-btn" @click="$router.push(localePath('/'))">{{ $t('joinedDorms.findDorm') }}</button>
       </div>
 
       <div v-else class="dorms-container">
@@ -28,7 +29,7 @@
               >
               <span class="creator-name">{{ dorm.creator_name }}</span>
             </div>
-            <button class="view-btn" @click="viewDormDetail(dorm.dorm_id)">查看详情</button>
+            <button class="view-btn" @click="viewDormDetail(dorm.dorm_id)">{{ $t('joinedDorms.viewDetail') }}</button>
           </div>
           
           <div class="dorm-body">
@@ -36,14 +37,14 @@
             <p class="school-name">{{ dorm.school_name }}</p>
             
             <div class="room-info">
-              <span class="info-label">我的房间:</span>
-              <span class="room-number">{{ dorm.room_number }}房</span>
+              <span class="info-label">{{ $t('joinedDorms.myRoom') }}</span>
+              <span class="room-number">{{ dorm.room_number }}{{ $i18n.locale === 'en' ? '' : '房' }}</span>
             </div>
             
             <div class="dorm-info">
-              <span class="info-item">容量: {{ dorm.space }}人</span>
-              <span class="info-item">楼层: {{ dorm.floor_count }}层</span>
-              <span class="info-item">每层: {{ dorm.rooms_per_floor }}间</span>
+              <span class="info-item">{{ $t('joinedDorms.capacity', { n: dorm.space }) }}</span>
+              <span class="info-item">{{ $t('joinedDorms.floors', { n: dorm.floor_count }) }}</span>
+              <span class="info-item">{{ $t('joinedDorms.roomsPerFloor', { n: dorm.rooms_per_floor }) }}</span>
             </div>
           </div>
         </div>
@@ -53,8 +54,11 @@
 </template>
 
 <script>
+import LangToggle from '../components/LangToggle.vue'
+
 export default {
   name: 'JoinedDorms',
+  components: { LangToggle },
   data() {
     return {
       loading: true,
@@ -89,8 +93,11 @@ export default {
         this.loading = false;
       }
     },
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     viewDormDetail(dormId) {
-      this.$router.push(`/dorm/${dormId}`);
+      this.$router.push(this.localePath(`/dorm/${dormId}`));
     },
     showToast(message) {
       if (this.$notify) {

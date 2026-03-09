@@ -7,26 +7,27 @@
     />
     <header class="header">
       <div class="header-content">
-        <h1>智能舍友分配系统</h1>
+        <h1>{{ $t('nav.title') }}</h1>
         <div class="user-info">
+          <LangToggle />
           <div class="avatar-container">
             <div class="avatar" @click="toggleDropdown">
-              <img v-if="avatarUrl" :src="avatarUrl" alt="用户头像" class="avatar-img">
+              <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="avatar-img">
               <span v-else class="avatar-text">{{ username.charAt(0).toUpperCase() }}</span>
             </div>
             <!-- 下拉菜单 -->
             <div class="dropdown-menu" v-show="isDropdownVisible">
               <div class="dropdown-item" @click="handleProfile">
                 <i class="menu-icon">👤</i>
-                个人资料
+                {{ $t('nav.profile') }}
               </div>
               <div class="dropdown-item" @click="handleLogout">
                 <i class="menu-icon">🚪</i>
-                退出登录
+                {{ $t('nav.logout') }}
               </div>
             </div>
           </div>
-          <span>欢迎, {{ username }}</span>
+          <span>{{ $t('nav.welcome', { name: username }) }}</span>
         </div>
       </div>
     </header>
@@ -37,7 +38,7 @@
           <input 
             type="text" 
             class="search-input" 
-            placeholder="输入宿舍名，所在学校，哈希码..."
+            :placeholder="$t('home.searchPlaceholder')"
             v-model="searchQuery"
             @keyup.enter="handleSearch"
           >
@@ -53,38 +54,38 @@
             <template #trigger>
               <button class="action-btn create-room-btn" @click="toggleCreateRoom">
                 <span class="btn-icon">+</span>
-                创建宿舍
+                {{ $t('home.createDorm') }}
               </button>
             </template>
             
             <div class="create-room-form">
               <div class="form-header">
-                <h3>创建新宿舍</h3>
+                <h3>{{ $t('home.createDormTitle') }}</h3>
                 <button class="close-btn" @click="showCreateRoomModal = false">×</button>
               </div>
               <div class="form-body">
                 <div class="form-group">
-                  <label>宿舍名称</label>
+                  <label>{{ $t('home.dormName') }}</label>
                   <input 
                     type="text" 
                     v-model="dormForm.dormName" 
-                    placeholder="请输入宿舍名称"
+                    :placeholder="$t('home.dormNamePlaceholder')"
                     class="form-input"
                   >
                 </div>
 
                 <div class="form-group">
-                  <label>所属学校</label>
+                  <label>{{ $t('home.school') }}</label>
                   <input 
                     type="text" 
                     v-model="dormForm.schoolName" 
-                    placeholder="请输入学校名称"
+                    :placeholder="$t('home.schoolPlaceholder')"
                     class="form-input"
                   >
                 </div>
 
                 <div class="form-group">
-                  <label>宿舍容量</label>
+                  <label>{{ $t('home.capacity') }}</label>
                   <div class="radio-group">
                     <label class="radio-label" v-for="size in [2, 4, 6, 8]" :key="size">
                       <input 
@@ -93,32 +94,32 @@
                         v-model="dormForm.space"
                         name="dormSize"
                       >
-                      {{ size }}人间
+                      {{ size }}{{ $t('home.personRoom') }}
                     </label>
                   </div>
                 </div>
 
                 <div class="form-row">
                   <div class="form-group half">
-                    <label>楼层数</label>
+                    <label>{{ $t('home.floors') }}</label>
                     <input 
                       type="number" 
                       v-model="dormForm.floorCount" 
                       min="1"
                       max="30"
-                      placeholder="请输入楼层数"
+                      :placeholder="$t('home.floorsPlaceholder')"
                       class="form-input"
                     >
                   </div>
 
                   <div class="form-group half">
-                    <label>每层房间数</label>
+                    <label>{{ $t('home.roomsPerFloor') }}</label>
                     <input 
                       type="number" 
                       v-model="dormForm.roomsPerFloor" 
                       min="1"
                       max="100"
-                      placeholder="请输入每层房间数"
+                      :placeholder="$t('home.roomsPerFloorPlaceholder')"
                       class="form-input"
                     >
                   </div>
@@ -126,7 +127,7 @@
 
                 <div class="form-footer">
                   <button class="submit-btn" @click="handleCreateDorm">
-                    创建宿舍
+                    {{ $t('home.createBtn') }}
                   </button>
                 </div>
               </div>
@@ -135,16 +136,16 @@
         </div>
 
         <div class="button-wrapper">
-          <button class="action-btn joined-rooms-btn" @click="$router.push('/joined-dorms')">
+          <button class="action-btn joined-rooms-btn" @click="$router.push(localePath('/joined-dorms'))">
             <span class="btn-icon">🏠</span>
-            我加入的宿舍
+            {{ $t('home.joinedDorms') }}
           </button>
         </div>
 
         <div class="button-wrapper">
-          <button class="action-btn created-rooms-btn" @click="$router.push('/created-dorms')">
+          <button class="action-btn created-rooms-btn" @click="$router.push(localePath('/created-dorms'))">
             <span class="btn-icon">📋</span>
-            我创建的宿舍
+            {{ $t('home.myDorms') }}
           </button>
         </div>
       </div>
@@ -181,12 +182,14 @@
 <script>
 import SidePanel from '../components/SidePanel.vue'
 import SystemToast from '../components/Toast.vue'
+import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'HomePage',
   components: {
     SidePanel,
-    SystemToast
+    SystemToast,
+    LangToggle
   },
   data() {
     return {
@@ -214,14 +217,17 @@ export default {
     toggleDropdown() {
       this.isDropdownVisible = !this.isDropdownVisible;
     },
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     handleProfile() {
-      this.$router.push('/profile');
+      this.$router.push(this.localePath('/profile'));
       this.isDropdownVisible = false;
     },
     handleLogout() {
       localStorage.removeItem('username');
       localStorage.removeItem('userId');
-      this.$router.push('/login');
+      this.$router.push(this.localePath('/login'));
     },
     async fetchAvatar() {
       try {
@@ -324,9 +330,8 @@ export default {
         return;
       }
       
-      // 跳转到搜索结果页面，并传递搜索查询参数
       this.$router.push({
-        path: '/search-results',
+        path: this.localePath('/search-results'),
         query: { q: this.searchQuery }
       });
     }
@@ -380,6 +385,11 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* LangToggle 在头像左侧 50px 的间距由 gap 控制 */
+.user-info .lang-toggle {
+  margin-right: 2px;
 }
 
 .logout-btn {

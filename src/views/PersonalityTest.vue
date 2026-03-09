@@ -1,10 +1,11 @@
 <template>
   <div class="chat-container">
     <header class="chat-header">
-      <button class="back-btn" @click="$router.push('/profile')">
-        ← 返回个人资料
+      <button class="back-btn" @click="$router.push(localePath('/profile'))">
+        {{ $t('personalityTest.back') }}
       </button>
-      <h1>性格测试</h1>
+      <h1>{{ $t('personalityTest.title') }}</h1>
+      <LangToggle />
     </header>
 
     <main class="chat-content" ref="chatContent">
@@ -41,7 +42,7 @@
           type="text" 
           v-model="userInput"
           @keyup.enter="sendMessage(userInput)"
-          placeholder="输入你的回答..."
+            :placeholder="$t('personalityTest.inputPlaceholder')"
           :disabled="isWaitingForBot || showOptions"
         >
         <button 
@@ -49,7 +50,7 @@
           @click="sendMessage(userInput)"
           :disabled="isWaitingForBot || !userInput.trim() || showOptions"
         >
-          发送
+          {{ $t('personalityTest.send') }}
         </button>
       </div>
     </main>
@@ -65,8 +66,11 @@
 </template>
 
 <script>
+import LangToggle from '../components/LangToggle.vue'
+
 export default {
   name: 'PersonalityTest',
+  components: { LangToggle },
   data() {
     return {
       messages: [],
@@ -85,6 +89,9 @@ export default {
     }
   },
   methods: {
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     formatMessage(text) {
       // 检查是否是问卷结束消息
       if (text.includes('问卷就到这里') || text.includes('问卷结束')) {

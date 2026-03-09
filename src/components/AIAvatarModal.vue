@@ -2,32 +2,30 @@
   <div class="modal-overlay" @click="$emit('close')">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h3>AI 生成头像</h3>
+        <h3>{{ $t('aiAvatar.title') }}</h3>
         <button class="close-btn" @click="$emit('close')">×</button>
       </div>
       <div class="modal-body">
         <div class="input-group">
-          <label>描述你想要的头像风格</label>
+          <label>{{ $t('aiAvatar.label') }}</label>
           <textarea
             v-model="prompt"
-            placeholder="例如：一个微笑的动漫风格头像，蓝色头发，戴着眼镜..."
+            :placeholder="$t('aiAvatar.placeholder')"
             rows="4"
           ></textarea>
-          <div class="hint-text">
-            💡 提示：描述越详细，生成的头像越符合你的预期。生成过程大约需要10-30秒。
-          </div>
+          <div class="hint-text">{{ $t('aiAvatar.hint') }}</div>
         </div>
         <div class="examples">
-          <p class="examples-title">示例提示词：</p>
+          <p class="examples-title">{{ $t('aiAvatar.examplesTitle') }}</p>
           <div class="example-tags">
-            <span class="example-tag" @click="prompt = '可爱的动漫风格头像，粉色头发，大眼睛，微笑'">
-              动漫风格
+            <span class="example-tag" @click="prompt = $t('aiAvatar.animePrompt')">
+              {{ $t('aiAvatar.anime') }}
             </span>
-            <span class="example-tag" @click="prompt = '写实风格的专业商务头像，正装，自信的表情'">
-              商务风格
+            <span class="example-tag" @click="prompt = $t('aiAvatar.businessPrompt')">
+              {{ $t('aiAvatar.business') }}
             </span>
-            <span class="example-tag" @click="prompt = '卡通风格头像，圆脸，戴眼镜，温暖的笑容'">
-              卡通风格
+            <span class="example-tag" @click="prompt = $t('aiAvatar.cartoonPrompt')">
+              {{ $t('aiAvatar.cartoon') }}
             </span>
           </div>
         </div>
@@ -36,7 +34,7 @@
           @click="handleGenerate"
           :disabled="isGenerating"
         >
-          {{ isGenerating ? '生成中...' : '开始生成' }}
+          {{ isGenerating ? $t('aiAvatar.generating') : $t('aiAvatar.generateBtn') }}
         </button>
       </div>
     </div>
@@ -55,7 +53,7 @@ export default {
   methods: {
     async handleGenerate() {
       if (!this.prompt.trim()) {
-        alert('请输入头像描述');
+        alert(this.$t('aiAvatar.inputRequired'));
         return;
       }
 
@@ -75,7 +73,7 @@ export default {
         const data = await response.json();
         
         if (response.ok) {
-          alert('头像生成成功！');
+          alert(this.$t('aiAvatar.success'));
           this.$emit('avatarGenerated', data.data.avatarUrl);
           this.$emit('close');
         } else {

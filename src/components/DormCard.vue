@@ -17,28 +17,28 @@
             @click.stop="$emit('join-dorm', dorm)"
             v-if="inSearchResults || (!inSearchResults && !canDelete)"
           >
-            加入
+            {{ $t('dormCard.join') }}
           </button>
           <button 
             class="manage-applications-btn" 
             @click.stop="$emit('manage-applications', dorm)"
             v-if="!inSearchResults && canDelete"
           >
-            申请管理
+            {{ $t('dormCard.manage') }}
           </button>
           <button 
             class="edit-btn" 
             @click.stop="$emit('edit-dorm', dorm)"
             v-if="!inSearchResults && canDelete"
           >
-            编辑
+            {{ $t('dormCard.edit') }}
           </button>
           <button 
             class="delete-btn" 
             @click.stop="showConfirmDialog = true"
             v-if="!inSearchResults && canDelete"
           >
-            删除
+            {{ $t('dormCard.delete') }}
           </button>
         </div>
       </div>
@@ -48,19 +48,19 @@
         <p class="school-name">{{ dorm.school_name }}</p>
         
         <div class="hash-container">
-          <span class="hash-label">哈希码：</span>
+          <span class="hash-label">{{ $t('dormCard.hashLabel') }}</span>
           <div class="hash-value">
             <span class="hash">{{ truncatedHash }}</span>
             <button class="copy-btn" @click.stop="copyHash" :class="{ copied: isCopied }">
-              {{ isCopied ? '已复制' : '复制' }}
+              {{ isCopied ? $t('dormCard.copied') : $t('dormCard.copy') }}
             </button>
           </div>
         </div>
 
         <div class="dorm-info">
-          <span class="info-item">容量: {{ dorm.space }}人</span>
-          <span class="info-item">楼层: {{ dorm.floor_count }}层</span>
-          <span class="info-item">每层: {{ dorm.rooms_per_floor }}间</span>
+          <span class="info-item">{{ $t('dormCard.capacity', { n: dorm.space }) }}</span>
+          <span class="info-item">{{ $t('dormCard.floors', { n: dorm.floor_count }) }}</span>
+          <span class="info-item">{{ $t('dormCard.roomsPerFloor', { n: dorm.rooms_per_floor }) }}</span>
         </div>
       </div>
     </div>
@@ -68,11 +68,11 @@
     <!-- 自定义确认对话框 -->
     <div class="confirm-dialog-overlay" v-if="showConfirmDialog" @click.stop="showConfirmDialog = false">
       <div class="confirm-dialog" @click.stop>
-        <h3>确认删除</h3>
-        <p>确定要删除这个宿舍吗？此操作不可撤销。</p>
+        <h3>{{ $t('dormCard.confirmDelete') }}</h3>
+        <p>{{ $t('dormCard.confirmDeleteMsg') }}</p>
         <div class="confirm-buttons">
-          <button class="cancel-btn" @click="showConfirmDialog = false">取消</button>
-          <button class="confirm-btn" @click="handleDelete">确认删除</button>
+          <button class="cancel-btn" @click="showConfirmDialog = false">{{ $t('common.cancel') }}</button>
+          <button class="confirm-btn" @click="handleDelete">{{ $t('dormCard.confirmDelete') }}</button>
         </div>
       </div>
     </div>

@@ -2,9 +2,10 @@
   <div class="dorm-detail">
     <header class="detail-header">
       <button class="back-btn" @click="$router.back()">
-        ← 返回
+        {{ $t('dormDetail.back') }}
       </button>
-      <h1>{{ dormData.dorm_name || '加载中...' }} - 入住情况</h1>
+      <h1>{{ dormData.dorm_name || $t('dormDetail.loading') }}</h1>
+      <LangToggle />
       
       <!-- 添加垃圾桶图标 -->
       <div 
@@ -22,7 +23,7 @@
     <main class="detail-content">
       <div v-if="loading" class="loading-state">
         <div class="loading-spinner"></div>
-        <p>加载中...</p>
+        <p>{{ $t('dormDetail.loading') }}</p>
       </div>
 
       <template v-else>
@@ -68,7 +69,7 @@
 
         <div class="floors-container">
           <div v-for="(rooms, floor) in roomsByFloor" :key="floor" class="floor">
-            <h3 class="floor-title">{{ floor }}层</h3>
+            <h3 class="floor-title">{{ $t('dormDetail.floor', { n: floor }) }}</h3>
             <div class="rooms-container">
               <div v-for="room in rooms" :key="room.room_id" class="room" :class="{'full': room.current_occupants === room.capacity}">
                 <div class="room-header">
@@ -157,8 +158,11 @@
 </template>
 
 <script>
+import LangToggle from '../components/LangToggle.vue'
+
 export default {
   name: 'DormDetail',
+  components: { LangToggle },
   data() {
     return {
       loading: true,
@@ -977,6 +981,10 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   margin-bottom: 2rem;
   position: relative;
+}
+
+.detail-header h1 {
+  flex: 1;
 }
 
 .back-btn {

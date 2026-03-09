@@ -2,10 +2,11 @@
   <div class="profile-container">
     <header class="profile-header">
       <div class="header-content">
-        <button class="back-btn" @click="$router.push('/home')">
-          ← 返回主页
+        <button class="back-btn" @click="$router.push(localePath('/'))">
+          {{ $t('common.backHome') }}
         </button>
-        <h1>个人资料</h1>
+        <h1>{{ $t('profile.title') }}</h1>
+        <LangToggle />
       </div>
     </header>
 
@@ -20,10 +21,10 @@
             </div>
             <div class="avatar-buttons">
               <button class="change-avatar-btn" @click="triggerFileInput">
-                更换头像
+                {{ $t('profile.changeAvatar') }}
               </button>
               <button class="ai-avatar-btn" @click="generateAIAvatar">
-                AI生成头像
+                {{ $t('profile.aiAvatar') }}
               </button>
             </div>
             <input
@@ -38,22 +39,22 @@
 
         <!-- 基本信息部分 -->
         <div class="info-section">
-          <h2>基本信息</h2>
+          <h2>{{ $t('profile.basicInfo') }}</h2>
           <div class="info-item">
-            <label>用户名</label>
+            <label>{{ $t('profile.username') }}</label>
             <span>{{ username }}</span>
           </div>
         </div>
 
         <!-- 修改密码部分 -->
         <div class="password-section">
-          <h2>修改密码</h2>
+          <h2>{{ $t('profile.changePassword') }}</h2>
           <div class="form-group">
             <div class="password-input-wrapper">
               <input
                 :type="passwordVisibility.oldPassword ? 'text' : 'password'"
                 v-model="passwordForm.oldPassword"
-                placeholder="当前密码"
+                :placeholder="$t('profile.currentPassword')"
               />
               <button 
                 class="toggle-password-btn"
@@ -69,7 +70,7 @@
               <input
                 :type="passwordVisibility.newPassword ? 'text' : 'password'"
                 v-model="passwordForm.newPassword"
-                placeholder="新密码"
+                :placeholder="$t('profile.newPassword')"
               />
               <button 
                 class="toggle-password-btn"
@@ -85,7 +86,7 @@
               <input
                 :type="passwordVisibility.confirmPassword ? 'text' : 'password'"
                 v-model="passwordForm.confirmPassword"
-                placeholder="确认新密码"
+                :placeholder="$t('profile.confirmNewPassword')"
               />
               <button 
                 class="toggle-password-btn"
@@ -97,15 +98,15 @@
             </div>
           </div>
           <button class="submit-btn" @click="handlePasswordChange">
-            确认修改
+            {{ $t('profile.saveChange') }}
           </button>
         </div>
 
         <!-- 性格测试部分 -->
         <div class="personality-section">
-          <h2>性格爱好测试</h2>
+          <h2>{{ $t('profile.personalityTest') }}</h2>
           <div class="tags-container" v-if="userTags.length > 0">
-            <h3>我的性格标签</h3>
+            <h3>{{ $t('profile.myTags') }}</h3>
             <div class="tags-list">
               <span 
                 v-for="tag in userTags" 
@@ -116,12 +117,9 @@
               </span>
             </div>
           </div>
-          <p class="test-description">
-            完成性格测试问卷，帮助我们更好地为您匹配室友。
-            测试采用对话形式，轻松有趣地了解您的性格特征。
-          </p>
+          <p class="test-description">{{ $t('profile.testDesc') }}</p>
           <button class="test-btn" @click="startPersonalityTest">
-            {{ userTags.length > 0 ? '重新测试' : '开始测试' }}
+            {{ userTags.length > 0 ? $t('profile.retakeTest') : $t('profile.startTest') }}
             <span class="test-icon">🎯</span>
           </button>
         </div>
@@ -138,11 +136,13 @@
 
 <script>
 import AIAvatarModal from '../components/AIAvatarModal.vue';
+import LangToggle from '../components/LangToggle.vue';
 
 export default {
   name: 'ProfilePage',
   components: {
-    AIAvatarModal
+    AIAvatarModal,
+    LangToggle
   },
   data() {
     return {
@@ -264,9 +264,11 @@ export default {
         alert('密码修改失败: ' + (error.message || '请稍后重试'));
       }
     },
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     startPersonalityTest() {
-      // TODO: 跳转到性格测试页面
-      this.$router.push('/personality-test');
+      this.$router.push(this.localePath('/personality-test'));
     },
     generateAIAvatar() {
       this.showAIModal = true;
@@ -314,6 +316,10 @@ export default {
   display: flex;
   align-items: center;
   gap: 2rem;
+}
+
+.header-content h1 {
+  flex: 1;
 }
 
 .back-btn {

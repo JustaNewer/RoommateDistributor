@@ -1,13 +1,17 @@
 <template>
-  <!-- 保持原有模板不变 -->
   <div class="app-container">
+    <!-- Language Toggle - top right -->
+    <div class="lang-toggle-fixed">
+      <LangToggle />
+    </div>
+
     <!-- Left side - Application Description -->
     <div class="description-section">
       <div class="description-content">
-        <h1 class="title">智能舍友分配系统</h1>
+        <h1 class="title">{{ $t('login.systemTitle') }}</h1>
         <p class="description">
-          欢迎使用我们的智能舍友分配系统
-          <span class="highlight">为您匹配最合适的室友</span>
+          {{ $t('login.systemDesc') }}
+          <span class="highlight">{{ $t('login.systemHighlight') }}</span>
         </p>
         <div class="animated-circles">
           <div class="circle"></div>
@@ -23,16 +27,16 @@
         <transition name="fade" mode="out-in">
           <!-- Login Form -->
           <div v-if="!isRegistering" key="login" class="form-container">
-            <h2>用户登录</h2>
+            <h2>{{ $t('login.loginTitle') }}</h2>
             <div class="input-group">
-              <input type="text" v-model="loginForm.username" placeholder="用户名" />
+              <input type="text" v-model="loginForm.username" :placeholder="$t('login.username')" />
             </div>
             <div class="input-group">
               <div class="password-input-wrapper">
                 <input 
                   :type="passwordVisibility.login ? 'text' : 'password'" 
                   v-model="loginForm.password" 
-                  placeholder="密码" 
+                  :placeholder="$t('login.password')" 
                 />
                 <button 
                   class="toggle-password-btn"
@@ -48,24 +52,24 @@
             </div>
             <div class="button-group">
               <button class="login-btn" @click="handleLogin" :disabled="isLoading">
-                {{ isLoading ? '登录中...' : '登录' }}
+                {{ isLoading ? $t('login.loggingIn') : $t('login.loginBtn') }}
               </button>
-              <button class="register-btn" @click="toggleForm" :disabled="isLoading">注册</button>
+              <button class="register-btn" @click="toggleForm" :disabled="isLoading">{{ $t('login.registerBtn') }}</button>
             </div>
           </div>
 
           <!-- Register Form -->
           <div v-else key="register" class="form-container">
-            <h2>用户注册</h2>
+            <h2>{{ $t('login.registerTitle') }}</h2>
             <div class="input-group">
-              <input type="text" v-model="registerForm.username" placeholder="设置用户名" />
+              <input type="text" v-model="registerForm.username" :placeholder="$t('login.setUsername')" />
             </div>
             <div class="input-group">
               <div class="password-input-wrapper">
                 <input 
                   :type="passwordVisibility.register ? 'text' : 'password'" 
                   v-model="registerForm.password" 
-                  placeholder="设置密码" 
+                  :placeholder="$t('login.setPassword')" 
                 />
                 <button 
                   class="toggle-password-btn"
@@ -81,7 +85,7 @@
                 <input 
                   :type="passwordVisibility.confirm ? 'text' : 'password'" 
                   v-model="registerForm.confirmPassword" 
-                  placeholder="确认密码" 
+                  :placeholder="$t('login.confirmPassword')" 
                 />
                 <button 
                   class="toggle-password-btn"
@@ -97,9 +101,9 @@
             </div>
             <div class="button-group">
               <button class="confirm-btn" @click="handleRegister" :disabled="isLoading">
-                {{ isLoading ? '注册中...' : '确认注册' }}
+                {{ isLoading ? $t('login.registering') : $t('login.confirmRegister') }}
               </button>
-              <button class="back-btn" @click="toggleForm" :disabled="isLoading">返回登录</button>
+              <button class="back-btn" @click="toggleForm" :disabled="isLoading">{{ $t('login.backToLogin') }}</button>
             </div>
           </div>
         </transition>
@@ -109,8 +113,11 @@
 </template>
 
 <script>
+import LangToggle from '../components/LangToggle.vue'
+
 export default {
   name: 'LoginPage',
+  components: { LangToggle },
   data() {
     return {
       isRegistering: false,
@@ -284,6 +291,14 @@ body {
   min-height: 100vh;
   background-color: #1a1a1a;
   color: #ffffff;
+  position: relative;
+}
+
+.lang-toggle-fixed {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 100;
 }
 
 .description-section {

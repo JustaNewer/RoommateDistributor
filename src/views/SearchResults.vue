@@ -2,19 +2,20 @@
   <div class="search-results">
     <header class="results-header">
       <button class="back-btn" @click="$router.back()">
-        ← 返回
+        {{ $t('search.back') }}
       </button>
-      <h1>搜索结果:</h1>
+      <h1>{{ $t('search.title') }}</h1>
+      <LangToggle />
     </header>
 
     <main class="results-content">
       <div v-if="loading" class="loading-state">
-        正在搜索...
+        {{ $t('search.searching') }}
       </div>
 
       <div v-else-if="dorms.length === 0" class="no-results">
-        <p>未找到匹配的宿舍</p>
-        <button class="back-home-btn" @click="$router.push('/')">返回首页</button>
+        <p>{{ $t('search.noResults') }}</p>
+        <button class="back-home-btn" @click="$router.push(localePath('/'))">{{ $t('search.backHome') }}</button>
       </div>
 
       <div v-else class="dorms-grid">
@@ -33,11 +34,13 @@
 
 <script>
 import DormCard from '../components/DormCard.vue'
+import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'SearchResults',
   components: {
-    DormCard
+    DormCard,
+    LangToggle
   },
   data() {
     return {
@@ -47,6 +50,9 @@ export default {
     }
   },
   methods: {
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     async fetchSearchResults() {
       try {
         this.loading = true;
@@ -165,6 +171,10 @@ export default {
   gap: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   margin-bottom: 2rem;
+}
+
+.results-header h1 {
+  flex: 1;
 }
 
 .back-btn {

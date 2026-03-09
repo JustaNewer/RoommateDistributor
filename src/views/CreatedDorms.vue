@@ -1,16 +1,17 @@
 <template>
   <div class="created-dorms">
     <header class="page-header">
-      <h2>我创建的宿舍</h2>
-      <button class="back-btn" @click="$router.push('/')">返回首页</button>
+      <h2>{{ $t('createdDorms.title') }}</h2>
+      <LangToggle />
+      <button class="back-btn" @click="$router.push(localePath('/'))">{{ $t('common.backHome') }}</button>
     </header>
 
     <div class="created-dorms-container">
       <div class="instruction-box">
         <div class="instruction-icon">💡</div>
         <div class="instruction-content">
-          <h3>智能分配舍友</h3>
-          <p>系统将根据申请用户的性格标签，自动分析并推荐最佳的舍友组合，帮助你快速分配舍友。点击"智能分配舍友"按钮开始自动匹配过程。</p>
+          <h3>{{ $t('createdDorms.smartAssign') }}</h3>
+          <p>{{ $t('createdDorms.smartAssignDesc') }}</p>
         </div>
       </div>
 
@@ -26,18 +27,18 @@
         >
           <div class="dorm-actions">
             <button class="action-btn btn-applications" @click.stop="showApplications(dorm)">
-              申请管理
+              {{ $t('createdDorms.applications') }}
             </button>
             <button class="action-btn btn-rooms" @click.stop="handleViewRooms()">
-              房间概况
+              {{ $t('createdDorms.viewRooms') }}
             </button>
           </div>
         </DormCard>
       </div>
 
       <div class="empty-state" v-else>
-        <p>暂无创建的宿舍</p>
-        <button class="create-btn" @click="$router.push('/')">创建宿舍</button>
+        <p>{{ $t('createdDorms.noDorms') }}</p>
+        <button class="create-btn" @click="$router.push(localePath('/'))">{{ $t('createdDorms.createDorm') }}</button>
       </div>
     </div>
 
@@ -45,32 +46,32 @@
     <div class="modal-overlay" v-if="showEditModal" @click="showEditModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>编辑宿舍</h3>
+          <h3>{{ $t('createdDorms.editDorm') }}</h3>
           <button class="close-btn" @click="showEditModal = false">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>宿舍名称</label>
+            <label>{{ $t('createdDorms.dormName') }}</label>
             <input 
               type="text" 
               v-model="editForm.dormName" 
-              placeholder="请输入宿舍名称"
+              :placeholder="$t('createdDorms.dormNamePlaceholder')"
               class="form-input"
             >
           </div>
 
           <div class="form-group">
-            <label>所属学校</label>
+            <label>{{ $t('createdDorms.school') }}</label>
             <input 
               type="text" 
               v-model="editForm.schoolName" 
-              placeholder="请输入学校名称"
+              :placeholder="$t('createdDorms.schoolPlaceholder')"
               class="form-input"
             >
           </div>
 
           <div class="form-group">
-            <label>宿舍容量</label>
+            <label>{{ $t('createdDorms.capacity') }}</label>
             <div class="radio-group">
               <label class="radio-label" v-for="size in [2, 4, 6, 8]" :key="size">
                 <input 
@@ -79,40 +80,38 @@
                   v-model="editForm.space"
                   name="editDormSize"
                 >
-                {{ size }}人间
+                {{ size }}{{ $t('createdDorms.personRoom') }}
               </label>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group half">
-              <label>楼层数</label>
+              <label>{{ $t('createdDorms.floors') }}</label>
               <input 
                 type="number" 
                 v-model="editForm.floorCount" 
                 min="1"
                 max="30"
-                placeholder="请输入楼层数"
                 class="form-input"
               >
             </div>
 
             <div class="form-group half">
-              <label>每层房间数</label>
+              <label>{{ $t('createdDorms.roomsPerFloor') }}</label>
               <input 
                 type="number" 
                 v-model="editForm.roomsPerFloor" 
                 min="1"
                 max="100"
-                placeholder="请输入每层房间数"
                 class="form-input"
               >
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="showEditModal = false">取消</button>
-          <button class="submit-btn" @click="handleUpdateDorm">保存修改</button>
+          <button class="cancel-btn" @click="showEditModal = false">{{ $t('common.cancel') }}</button>
+          <button class="submit-btn" @click="handleUpdateDorm">{{ $t('createdDorms.saveEdit') }}</button>
         </div>
       </div>
     </div>
@@ -126,20 +125,20 @@
     <div class="modal-overlay" v-if="showApplicationsModal" @click="showApplicationsModal = false">
       <div class="modal-content applications-modal" @click.stop>
         <div class="modal-header">
-          <h3>申请管理 - {{ currentDorm ? currentDorm.dorm_name : '' }}</h3>
+          <h3>{{ $t('createdDorms.applyManage', { name: currentDorm ? currentDorm.dorm_name : '' }) }}</h3>
           <button class="close-btn" @click="showApplicationsModal = false">×</button>
         </div>
         <div class="modal-body">
           <div v-if="loadingApplications" class="loading-applications">
-            正在加载申请列表...
+            {{ $t('createdDorms.loadingApps') }}
           </div>
           <div v-else-if="applications.length === 0" class="empty-applications">
-            暂无待处理的申请
+            {{ $t('createdDorms.noApplications') }}
           </div>
           <div v-else class="applications-list">
             <div class="top-actions">
               <div class="applications-header" v-if="applications.length > 0">
-                <div class="applications-count">{{ applications.length }} 个待处理申请</div>
+                <div class="applications-count">{{ $t('createdDorms.pendingApps', { count: applications.length }) }}</div>
                 <div class="applications-actions">
                   <button 
                     class="assign-roommates-btn" 
@@ -148,14 +147,14 @@
                     :class="{ 'loading': isAssigning }"
                   >
                     <span v-if="isAssigning">
-                      <i class="btn-icon">⏳</i> 正在分配...
+                      <i class="btn-icon">⏳</i> {{ $t('createdDorms.assigning') }}
                     </span>
                     <span v-else>
-                      <i class="btn-icon">⚙️</i> 智能分配舍友
+                      <i class="btn-icon">⚙️</i> {{ $t('createdDorms.assignRoommates') }}
                     </span>
                   </button>
                   <button class="view-rooms-btn" @click="handleViewRooms()">
-                    <i class="btn-icon">🏠</i> 查看房间
+                    <i class="btn-icon">🏠</i> {{ $t('createdDorms.viewRooms') }}
                   </button>
                 </div>
               </div>
@@ -286,11 +285,13 @@
 
 <script>
 import DormCard from '../components/DormCard.vue'
+import LangToggle from '../components/LangToggle.vue'
 
 export default {
   name: 'CreatedDorms',
   components: {
-    DormCard
+    DormCard,
+    LangToggle
   },
   data() {
     return {
@@ -325,6 +326,9 @@ export default {
     }
   },
   methods: {
+    localePath(path) {
+      return this.$i18n.locale === 'en' ? '/en' + path : path;
+    },
     async fetchCreatedDorms() {
       try {
         const userId = localStorage.getItem('userId');
