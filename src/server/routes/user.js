@@ -323,6 +323,43 @@ router.post('/chat/proxy', async (req, res) => {
     }
 });
 
+// 获取用户基本信息（profile 表单）
+router.get('/:userId/profile', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const [rows] = await db.execute(
+            'SELECT real_name, height, weight, gender, major FROM Users WHERE user_id = ?',
+            [userId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: '用户不存在' });
+        }
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        console.error('获取用户信息错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
+// 保存用户基本信息
+router.put('/:userId/profile', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { real_name, height, weight, gender, major } = req.body;
+        const [result] = await db.execute(
+            'UPDATE Users SET real_name = ?, height = ?, weight = ?, gender = ?, major = ? WHERE user_id = ?',
+            [real_name || null, height || null, weight || null, gender || null, major || null, userId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: '用户不存在' });
+        }
+        res.json({ success: true, message: '信息保存成功' });
+    } catch (error) {
+        console.error('保存用户信息错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
 // 清除用户对话历史
 router.delete('/chat/history/:userId', (req, res) => {
     const { userId } = req.params;

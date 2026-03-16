@@ -47,6 +47,42 @@
             <label>{{ $t('profile.username') }}</label>
             <span>{{ username }}</span>
           </div>
+
+          <div class="info-form">
+            <div class="form-row">
+              <label>{{ $t('profile.realName') }}</label>
+              <input type="text" v-model="profileForm.real_name" :placeholder="$t('profile.realNamePlaceholder')" />
+            </div>
+            <div class="form-row">
+              <label>{{ $t('profile.gender') }}</label>
+              <select v-model="profileForm.gender">
+                <option value="">{{ $t('profile.genderPlaceholder') }}</option>
+                <option value="male">{{ $t('profile.male') }}</option>
+                <option value="female">{{ $t('profile.female') }}</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>{{ $t('profile.height') }}</label>
+              <div class="input-with-unit">
+                <input type="number" v-model="profileForm.height" :placeholder="$t('profile.heightPlaceholder')" />
+                <span class="unit">cm</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>{{ $t('profile.weight') }}</label>
+              <div class="input-with-unit">
+                <input type="number" v-model="profileForm.weight" :placeholder="$t('profile.weightPlaceholder')" />
+                <span class="unit">kg</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>{{ $t('profile.major') }}</label>
+              <input type="text" v-model="profileForm.major" :placeholder="$t('profile.majorPlaceholder')" />
+            </div>
+            <button class="save-profile-btn" @click="saveProfile" :disabled="isSavingProfile">
+              {{ isSavingProfile ? $t('profile.saving') : $t('profile.saveProfile') }}
+            </button>
+          </div>
         </div>
 
         <!-- 修改密码部分 -->
@@ -164,7 +200,15 @@ export default {
         newPassword: false,
         confirmPassword: false
       },
-      userTags: []
+      userTags: [],
+      profileForm: {
+        real_name: '',
+        height: '',
+        weight: '',
+        gender: '',
+        major: ''
+      },
+      isSavingProfile: false
     }
   },
   methods: {
@@ -293,11 +337,51 @@ export default {
       } catch (error) {
         console.error('获取用户标签失败:', error);
       }
+    },
+    async fetchProfile() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/user/${userId}/profile`);
+        const data = await response.json();
+        if (response.ok && data.data) {
+          const d = data.data;
+          this.profileForm.real_name = d.real_name || '';
+          this.profileForm.height = d.height || '';
+          this.profileForm.weight = d.weight || '';
+          this.profileForm.gender = d.gender || '';
+          this.profileForm.major = d.major || '';
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    },
+    async saveProfile() {
+      this.isSavingProfile = true;
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/user/${userId}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.profileForm)
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert(this.$t('profile.saveSuccess'));
+        } else {
+          alert(data.message || this.$t('profile.saveFail'));
+        }
+      } catch (error) {
+        console.error('保存用户信息失败:', error);
+        alert(this.$t('profile.saveFail'));
+      } finally {
+        this.isSavingProfile = false;
+      }
     }
   },
   mounted() {
     this.fetchAvatar();
     this.fetchUserTags();
+    this.fetchProfile();
   }
 }
 </script>
@@ -445,6 +529,88 @@ h2 {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
+}
+
+.info-form {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.form-row label {
+  min-width: 80px;
+  flex-shrink: 0;
+  color: var(--text-2);
+  font-size: 0.95rem;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  padding: 0.7rem 0.8rem;
+  background-color: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-1);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.form-row select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.input-with-unit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-with-unit input {
+  flex: 1;
+}
+
+.input-with-unit .unit {
+  color: var(--text-3);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.save-profile-btn {
+  margin-top: 0.5rem;
+  padding: 0.7rem 2rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  align-self: flex-end;
+  transition: background-color 0.2s;
+}
+
+.save-profile-btn:hover:not(:disabled) {
+  background-color: #43a047;
+}
+
+.save-profile-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .form-group {

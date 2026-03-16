@@ -22,11 +22,11 @@ export default {
       if (this.$i18n.locale === 'zh') {
         // → English: add /en prefix
         const newPath = '/en' + (currentPath === '/' ? '/' : currentPath)
-        this.$router.push(newPath)
+        this.$router.replace(newPath)
       } else {
         // → Chinese: remove /en prefix
         const newPath = currentPath.replace(/^\/en/, '') || '/'
-        this.$router.push(newPath)
+        this.$router.replace(newPath)
       }
     }
   }
