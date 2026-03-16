@@ -122,6 +122,12 @@ export default {
     saving: 'Saving...',
     saveSuccess: 'Profile saved successfully',
     saveFail: 'Failed to save profile',
+    sleepTime: 'Night Sleep',
+    hasNap: 'Takes a Nap',
+    napYes: 'Yes',
+    napNo: 'No',
+    napTime: 'Nap Period',
+    timeTo: 'to',
   },
 
   // AI Avatar modal
@@ -234,6 +240,50 @@ export default {
     searching: 'Searching...',
     noResults: 'No matching dorms found',
     backHome: 'Back to Home',
+  },
+
+  // Questionnaire test
+  questionnaire: {
+    title: 'Personality Questionnaire',
+    prev: 'Previous',
+    next: 'Next',
+    submit: 'Submit',
+    submitting: 'Submitting...',
+    completeTitle: 'Questionnaire Submitted',
+    completeDesc: 'Your personality vector has been saved. It will be used to find the best roommates for you.',
+    backToProfile: 'Back to Profile',
+    opt1: 'Strongly Disagree',
+    opt2: 'Disagree',
+    opt3: 'Neutral',
+    opt4: 'Agree',
+    opt5: 'Strongly Agree',
+    dim1: 'Openness to New Things',
+    dim2: 'Planning & Self-discipline',
+    dim3: 'Need for Quiet Nights',
+    dim4: 'Social Activity Level',
+    dim5: 'Sense of Public Duty',
+    dim6: 'Sharing Attitude',
+    dim7: 'Conflict Communication',
+    dim8: 'Emotional Stability',
+    dim9: 'Tidiness Habits',
+    q1: 'I enjoy trying new lifestyles or experiences and can adapt to different living habits.',
+    q2: 'I prefer to plan my life and complete tasks on schedule.',
+    q3: 'I need a quiet nighttime environment to rest or study; I cannot tolerate loud noise.',
+    q4: 'I enjoy social activities and am happy to hang out with friends or invite them to the dorm.',
+    q5: 'I am willing to take on shared responsibilities such as cleaning common areas or buying supplies.',
+    q6: 'I am willing to share daily items with roommates and split costs as agreed.',
+    q7: 'When I have a disagreement with a roommate, I will communicate and try to resolve it.',
+    q8: 'In daily life, I often feel anxious or experience mood swings.',
+    q9: 'I keep my room and common areas tidy and clean them regularly.',
+  },
+
+  // Test choice
+  testChoice: {
+    title: 'Choose Test Type',
+    aiChat: 'AI Chat Test',
+    aiChatDesc: 'Discover your personality through a casual AI conversation',
+    questionnaire: 'Questionnaire',
+    questionnaireDesc: '9 standardized questions to quickly generate your personality vector',
   },
 
   // Personality test

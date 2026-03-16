@@ -328,7 +328,7 @@ router.get('/:userId/profile', async (req, res) => {
     try {
         const { userId } = req.params;
         const [rows] = await db.execute(
-            'SELECT real_name, height, weight, gender FROM Users WHERE user_id = ?',
+            'SELECT real_name, height, weight, gender, sleep_time_start, sleep_time_end, has_nap, nap_time_start, nap_time_end FROM Users WHERE user_id = ?',
             [userId]
         );
         if (rows.length === 0) {
@@ -345,10 +345,21 @@ router.get('/:userId/profile', async (req, res) => {
 router.put('/:userId/profile', async (req, res) => {
     try {
         const { userId } = req.params;
-        const { real_name, height, weight, gender } = req.body;
+        const { real_name, height, weight, gender, sleep_time_start, sleep_time_end, has_nap, nap_time_start, nap_time_end } = req.body;
         const [result] = await db.execute(
-            'UPDATE Users SET real_name = ?, height = ?, weight = ?, gender = ? WHERE user_id = ?',
-            [real_name || null, height || null, weight || null, gender || null, userId]
+            'UPDATE Users SET real_name = ?, height = ?, weight = ?, gender = ?, sleep_time_start = ?, sleep_time_end = ?, has_nap = ?, nap_time_start = ?, nap_time_end = ? WHERE user_id = ?',
+            [
+                real_name || null,
+                height || null,
+                weight || null,
+                gender || null,
+                sleep_time_start || null,
+                sleep_time_end || null,
+                has_nap ? 1 : 0,
+                (has_nap && nap_time_start) ? nap_time_start : null,
+                (has_nap && nap_time_end) ? nap_time_end : null,
+                userId
+            ]
         );
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: '用户不存在' });
@@ -356,6 +367,75 @@ router.put('/:userId/profile', async (req, res) => {
         res.json({ success: true, message: '信息保存成功' });
     } catch (error) {
         console.error('保存用户信息错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
+// 保存问卷测试结果（user_vector）
+router.post('/save-vector', async (req, res) => {
+    try {
+        const { userId, vector } = req.body;
+
+        if (!userId || !vector || !Array.isArray(vector) || vector.length !== 9) {
+            return res.status(400).json({
+                success: false,
+                message: '无效的参数，需要9维向量'
+            });
+        }
+
+        for (const v of vector) {
+            if (typeof v !== 'number' || v < 1 || v > 5) {
+                return res.status(400).json({
+                    success: false,
+                    message: '向量值必须在1-5之间'
+                });
+            }
+        }
+
+        const vectorString = JSON.stringify(vector);
+
+        const [result] = await db.execute(
+            'UPDATE Users SET user_vector = ? WHERE user_id = ?',
+            [vectorString, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: '用户不存在' });
+        }
+
+        res.json({
+            success: true,
+            message: '问卷结果保存成功',
+            data: { vector }
+        });
+    } catch (error) {
+        console.error('保存问卷结果错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
+// 获取用户问卷向量
+router.get('/:userId/vector', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const [users] = await db.execute(
+            'SELECT user_vector FROM Users WHERE user_id = ?',
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: '用户不存在' });
+        }
+
+        const userVector = users[0].user_vector ? JSON.parse(users[0].user_vector) : null;
+
+        res.json({
+            success: true,
+            data: { user_vector: userVector }
+        });
+    } catch (error) {
+        console.error('获取问卷结果错误:', error);
         res.status(500).json({ success: false, message: '服务器错误' });
     }
 });

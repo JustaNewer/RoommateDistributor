@@ -354,7 +354,8 @@ router.get('/room-occupants/:roomId', async (req, res) => {
             `SELECT 
                 do.user_id,
                 u.username,
-                u.avatar_url
+                u.avatar_url,
+                u.gender
              FROM DormOccupants do
              JOIN Users u ON do.user_id = u.user_id
              WHERE do.room_id = ?`,
@@ -364,13 +365,13 @@ router.get('/room-occupants/:roomId', async (req, res) => {
         const capacity = roomInfo[0].capacity;
         const occupantsByPosition = Array(capacity).fill(null);
 
-        // 由于没有床位位置信息，简单地将用户按顺序分配到床位
         occupants.forEach((occupant, index) => {
             if (index < capacity) {
                 occupantsByPosition[index] = {
                     user_id: occupant.user_id,
                     username: occupant.username,
-                    avatar_url: occupant.avatar_url
+                    avatar_url: occupant.avatar_url,
+                    gender: occupant.gender || null
                 };
             }
         });
@@ -1220,15 +1221,44 @@ router.post('/assign-roommates', async (req, res) => {
             });
         }
 
-        // 获取已有的标签及用户对象数组
-        const applicants = applications.map(app => ({
-            userId: app.user_id,
-            username: app.username,
-            applicationId: app.application_id,
-            tags: app.user_tags ? app.user_tags.split(' ').map(tag =>
-                tag.startsWith('#') ? tag : `#${tag}`
-            ) : []
-        }));
+        // 获取申请用户的详细信息（睡眠、午睡、向量）
+        const userIdList = applications.map(a => a.user_id);
+        const placeholders = userIdList.map(() => '?').join(',');
+        const [userRows] = await db.execute(
+            `SELECT user_id, user_vector, sleep_time_start, sleep_time_end, has_nap, nap_time_start, nap_time_end
+             FROM Users WHERE user_id IN (${placeholders})`,
+            userIdList
+        );
+        const userInfoMap = {};
+        for (const row of userRows) {
+            userInfoMap[row.user_id] = {
+                vector: row.user_vector ? (() => { try { return JSON.parse(row.user_vector); } catch (e) { return null; } })() : null,
+                sleep_time_start: row.sleep_time_start || null,
+                sleep_time_end: row.sleep_time_end || null,
+                has_nap: !!row.has_nap,
+                nap_time_start: row.nap_time_start || null,
+                nap_time_end: row.nap_time_end || null,
+            };
+        }
+
+        // 构建申请者对象数组
+        const applicants = applications.map(app => {
+            const info = userInfoMap[app.user_id] || {};
+            return {
+                userId: app.user_id,
+                username: app.username,
+                applicationId: app.application_id,
+                tags: app.user_tags ? app.user_tags.split(' ').map(tag =>
+                    tag.startsWith('#') ? tag : `#${tag}`
+                ) : [],
+                sleep_time_start: info.sleep_time_start,
+                sleep_time_end: info.sleep_time_end,
+                has_nap: info.has_nap || false,
+                nap_time_start: info.nap_time_start,
+                nap_time_end: info.nap_time_end,
+                vector: info.vector,
+            };
+        });
 
         // 调用DeepSeek API进行舍友匹配
         const roomAssignments = await assignRoommatesWithAI(applicants, rooms, roomCapacity);
@@ -1286,7 +1316,6 @@ router.post('/assign-roommates', async (req, res) => {
 
                         // 只有在记录不存在的情况下才插入
                         if (existingRecord.length === 0) {
-                            // 插入新的记录
                             await connection.execute(
                                 'INSERT INTO DormOccupants (dorm_id, user_id, room_id) VALUES (?, ?, ?)',
                                 [dormId, userId, roomId]
@@ -1294,6 +1323,12 @@ router.post('/assign-roommates', async (req, res) => {
                         } else {
                             console.log(`用户 ${userId} 已在宿舍 ${dormId} 中，跳过插入`);
                         }
+
+                        // 更新 Users 表的 dorm_id
+                        await connection.execute(
+                            'UPDATE Users SET dorm_id = ? WHERE user_id = ?',
+                            [dormId, userId]
+                        );
 
                         // 更新申请状态为approved
                         await connection.execute(
@@ -1482,12 +1517,23 @@ async function assignRoommatesWithAI(applicants, rooms, roomCapacity) {
     }
 
     try {
-        // 准备向DeepSeek发送的数据
-        const userTags = applicants.map(a => ({
-            user_id: a.userId,
-            username: a.username,
-            tags: a.tags.join(' ')
-        }));
+        // 准备向DeepSeek发送的用户数据
+        const userData = applicants.map(a => {
+            const info = {
+                user_id: a.userId,
+                username: a.username,
+            };
+            if (a.sleep_time_start) info.sleep_time_start = a.sleep_time_start;
+            if (a.sleep_time_end) info.sleep_time_end = a.sleep_time_end;
+            info.has_nap = a.has_nap;
+            if (a.has_nap) {
+                if (a.nap_time_start) info.nap_time_start = a.nap_time_start;
+                if (a.nap_time_end) info.nap_time_end = a.nap_time_end;
+            }
+            if (a.vector) info.personality_vector = a.vector;
+            if (a.tags && a.tags.length > 0) info.tags = a.tags.join(' ');
+            return info;
+        });
 
         const availableRooms = rooms.map(r => ({
             room_id: r.room_id,
@@ -1497,31 +1543,42 @@ async function assignRoommatesWithAI(applicants, rooms, roomCapacity) {
 
         // 构建提示文本
         const prompt = `
-你是一个智能舍友匹配系统。我需要你根据用户的性格标签，将用户分配到合适的宿舍房间。
-尽量将性格相似或互补的用户分在一起，避免可能发生冲突的性格在同一房间。
+你是一个智能舍友匹配系统。请根据用户的睡眠习惯和性格向量，将用户分配到合适的宿舍房间。
 
-用户信息:
-${JSON.stringify(userTags, null, 2)}
+## 匹配优先级（从高到低，严格按照此顺序）
 
-可用房间:
+**优先级0（最高）：必须把同性别的分到一个房间，如果不够分就单开一间**
+- 同一间房里只能有一个性别：全是男性或者全是女性
+
+**优先级1（高）：晚间睡眠时间段**
+- sleep_time_start 和 sleep_time_end 表示用户的晚间入睡和起床时间（格式 HH:MM）。
+- 睡眠时间段相近的用户应该分在同一房间。例如 23:00-07:00 的用户和 23:30-07:30 的用户很匹配，而 22:00-06:00 和 01:00-09:00 的用户不适合住一起。
+- 如果两个用户的入睡时间差 ≤ 1小时 且起床时间差 ≤ 1小时，视为睡眠习惯相近。
+
+**优先级2：是否午睡**
+- has_nap 表示用户是否午睡。尽量把午睡习惯相同的用户分在一起。
+- 如果两个用户都午睡，则进一步对比午睡时间段（nap_time_start、nap_time_end），午睡时间段越接近越好。
+
+**优先级3（最低）：性格向量相似度**
+- personality_vector 是9维向量（值1-5），对应：开放性、责任心-计划、安静需求、外向性、责任心-公共事务、宜人性-共享、宜人性-沟通、神经质、责任心-整洁。
+- 使用欧氏距离衡量用户间的相似度，距离越小越适合分在一起。
+
+## 用户信息
+${JSON.stringify(userData, null, 2)}
+
+## 可用房间
 ${JSON.stringify(availableRooms, null, 2)}
 
-房间容量: ${roomCapacity}人/间
+## 房间容量: ${roomCapacity}人/间
 
-请分析每个用户的标签，按照以下规则进行分配:
-1. 相似或互补性格的用户应该分配在一起（例如：#内向 的用户可能会和 #安静 的用户相处融洽）
-2. 避免将可能冲突的性格放在一起（例如：#夜猫子 和 #早起族）
-3. 优先填满房间再开始使用新房间，严格避免出现单人住一间房的情况
-4. 只有在最后一个分配的房间才允许有空位，其他房间都应该尽量填满
-5. 确保不超过房间容量
-6. 每个用户只能分配到一个房间，不允许重复分配
-7. 优先使用已经有人入住的房间，再使用空房间
-
-按照以下策略分配：
-- 如果有多个空房间，尽量集中使用少数几个房间，避免用户分散在多个房间
-- 把相似或互补性格的用户分配到同一房间，形成和谐的居住环境
-- 如果可用空间有限，先填满已经有人的房间，然后再考虑新开空房间
-- 非常重要：避免出现单人住一间房的情况，除非是最后分配的房间且没有更好的选择
+## 分配规则
+1. 严格按照上述优先级进行分组：先按晚间睡眠时间段分组，组内再按午睡习惯细分，最后用向量相似度微调
+2. 优先填满房间再使用新房间，严格避免单人住一间房
+3. 只有最后一个分配的房间允许有空位
+4. 确保不超过房间容量，每个用户只能分配到一个房间
+5. 优先使用已有人入住的房间
+6. 如果某些用户缺少睡眠时间数据，将他们视为"灵活"用户，最后填充到需要人的房间
+7. tags 标签仅作为辅助参考，不作为主要匹配依据
 
 请以JSON格式返回分配结果，格式为 {"房间ID": [用户ID数组]}。例如:
 {

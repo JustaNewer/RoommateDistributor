@@ -5,6 +5,7 @@ import Profile from '../views/Profile.vue'
 import CreatedDorms from '../views/CreatedDorms.vue'
 import JoinedDorms from '../views/JoinedDorms.vue'
 import PersonalityTest from '../views/PersonalityTest.vue'
+import QuestionnaireTest from '../views/QuestionnaireTest.vue'
 import DormDetail from '../views/DormDetail.vue'
 import SearchResults from '../views/SearchResults.vue'
 import i18n from '../i18n'
@@ -52,6 +53,12 @@ function makeRoutes(prefix = '') {
             path: `${prefix}/personality-test`,
             name: `PersonalityTest${suffix}`,
             component: PersonalityTest,
+            meta: { requiresAuth: true, lang, roles: ['resident', 'super_account'] }
+        },
+        {
+            path: `${prefix}/questionnaire-test`,
+            name: `QuestionnaireTest${suffix}`,
+            component: QuestionnaireTest,
             meta: { requiresAuth: true, lang, roles: ['resident', 'super_account'] }
         },
         {
