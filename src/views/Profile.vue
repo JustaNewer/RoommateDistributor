@@ -75,10 +75,6 @@
                 <span class="unit">kg</span>
               </div>
             </div>
-            <div class="form-row">
-              <label>{{ $t('profile.major') }}</label>
-              <input type="text" v-model="profileForm.major" :placeholder="$t('profile.majorPlaceholder')" />
-            </div>
             <button class="save-profile-btn" @click="saveProfile" :disabled="isSavingProfile">
               {{ isSavingProfile ? $t('profile.saving') : $t('profile.saveProfile') }}
             </button>
@@ -207,7 +203,6 @@ export default {
         height: '',
         weight: '',
         gender: '',
-        major: ''
       },
       isSavingProfile: false
     }
@@ -350,7 +345,6 @@ export default {
           this.profileForm.height = d.height || '';
           this.profileForm.weight = d.weight || '';
           this.profileForm.gender = d.gender || '';
-          this.profileForm.major = d.major || '';
         }
       } catch (error) {
         console.error('获取用户信息失败:', error);

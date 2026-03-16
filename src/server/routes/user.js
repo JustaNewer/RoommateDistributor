@@ -328,7 +328,7 @@ router.get('/:userId/profile', async (req, res) => {
     try {
         const { userId } = req.params;
         const [rows] = await db.execute(
-            'SELECT real_name, height, weight, gender, major FROM Users WHERE user_id = ?',
+            'SELECT real_name, height, weight, gender FROM Users WHERE user_id = ?',
             [userId]
         );
         if (rows.length === 0) {
@@ -345,10 +345,10 @@ router.get('/:userId/profile', async (req, res) => {
 router.put('/:userId/profile', async (req, res) => {
     try {
         const { userId } = req.params;
-        const { real_name, height, weight, gender, major } = req.body;
+        const { real_name, height, weight, gender } = req.body;
         const [result] = await db.execute(
-            'UPDATE Users SET real_name = ?, height = ?, weight = ?, gender = ?, major = ? WHERE user_id = ?',
-            [real_name || null, height || null, weight || null, gender || null, major || null, userId]
+            'UPDATE Users SET real_name = ?, height = ?, weight = ?, gender = ? WHERE user_id = ?',
+            [real_name || null, height || null, weight || null, gender || null, userId]
         );
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: '用户不存在' });

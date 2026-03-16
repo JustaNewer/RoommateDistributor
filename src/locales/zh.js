@@ -118,8 +118,6 @@ export default {
     heightPlaceholder: '请输入身高',
     weight: '体重',
     weightPlaceholder: '请输入体重',
-    major: '专业',
-    majorPlaceholder: '请输入专业',
     saveProfile: '保存信息',
     saving: '保存中...',
     saveSuccess: '信息保存成功',

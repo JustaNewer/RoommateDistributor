@@ -118,8 +118,6 @@ export default {
     heightPlaceholder: 'Enter height',
     weight: 'Weight',
     weightPlaceholder: 'Enter weight',
-    major: 'Major',
-    majorPlaceholder: 'Enter your major',
     saveProfile: 'Save',
     saving: 'Saving...',
     saveSuccess: 'Profile saved successfully',
