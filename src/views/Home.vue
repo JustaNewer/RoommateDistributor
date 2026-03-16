@@ -29,6 +29,10 @@
                 <i class="menu-icon">🚪</i>
                 {{ $t('nav.logout') }}
               </div>
+              <div class="dropdown-item danger" @click="showDeleteModal = true; isDropdownVisible = false">
+                <i class="menu-icon">⚠️</i>
+                {{ $t('nav.deleteAccount') }}
+              </div>
             </div>
           </div>
           <span>{{ $t('nav.welcome', { name: username }) }}</span>
@@ -53,7 +57,7 @@
       </div>
 
       <div class="action-buttons">
-        <div class="button-wrapper">
+        <div class="button-wrapper" v-if="canCreateDorm">
           <SidePanel v-model="showCreateRoomModal">
             <template #trigger>
               <button class="action-btn create-room-btn" @click="toggleCreateRoom">
@@ -139,14 +143,14 @@
           </SidePanel>
         </div>
 
-        <div class="button-wrapper">
+        <div class="button-wrapper" v-if="canJoinDorm">
           <button class="action-btn joined-rooms-btn" @click="$router.push(localePath('/joined-dorms'))">
             <span class="btn-icon">🏠</span>
             {{ $t('home.joinedDorms') }}
           </button>
         </div>
 
-        <div class="button-wrapper">
+        <div class="button-wrapper" v-if="canCreateDorm">
           <button class="action-btn created-rooms-btn" @click="$router.push(localePath('/created-dorms'))">
             <span class="btn-icon">📋</span>
             {{ $t('home.myDorms') }}
@@ -179,6 +183,38 @@
           </div>
         </div>
       </div>
+      <!-- 注销账号确认弹窗 -->
+      <div class="modal-overlay delete-overlay" v-if="showDeleteModal" @click="showDeleteModal = false">
+        <div class="modal-content delete-modal" @click.stop>
+          <div class="modal-header delete-header">
+            <h3>⚠️ {{ $t('nav.deleteAccountTitle') }}</h3>
+            <button class="close-btn" @click="showDeleteModal = false">×</button>
+          </div>
+          <div class="modal-body delete-body">
+            <p class="delete-warning">{{ $t('nav.deleteWarning') }}</p>
+            <p class="delete-hint">{{ $t('nav.deleteHint') }}</p>
+            <input
+              type="text"
+              v-model="deleteConfirmText"
+              :placeholder="$t('nav.deletePlaceholder')"
+              class="delete-input"
+              @keyup.enter="handleDeleteAccount"
+            />
+            <div class="delete-actions">
+              <button class="cancel-btn" @click="showDeleteModal = false; deleteConfirmText = ''">
+                {{ $t('nav.cancel') }}
+              </button>
+              <button
+                class="confirm-delete-btn"
+                :disabled="deleteConfirmText.toLowerCase() !== 'delete' || isDeletingAccount"
+                @click="handleDeleteAccount"
+              >
+                {{ isDeletingAccount ? $t('nav.deleting') : $t('nav.confirmDelete') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -200,6 +236,7 @@ export default {
   data() {
     return {
       username: localStorage.getItem('username') || '用户',
+      userRole: localStorage.getItem('userRole') || 'resident',
       isDropdownVisible: false,
       showCreateRoomModal: false,
       showCreatedRooms: false,
@@ -216,7 +253,18 @@ export default {
         show: false,
         message: '',
         type: 'success'
-      }
+      },
+      showDeleteModal: false,
+      deleteConfirmText: '',
+      isDeletingAccount: false
+    }
+  },
+  computed: {
+    canCreateDorm() {
+      return this.userRole === 'super_account' || this.userRole === 'admin';
+    },
+    canJoinDorm() {
+      return this.userRole === 'super_account' || this.userRole === 'resident';
     }
   },
   methods: {
@@ -233,7 +281,35 @@ export default {
     handleLogout() {
       localStorage.removeItem('username');
       localStorage.removeItem('userId');
+      localStorage.removeItem('userRole');
       this.$router.push(this.localePath('/login'));
+    },
+    async handleDeleteAccount() {
+      if (this.deleteConfirmText.toLowerCase() !== 'delete') return;
+      this.isDeletingAccount = true;
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`http://localhost:3000/api/auth/delete-account/${userId}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (response.ok) {
+          localStorage.removeItem('username');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userToken');
+          this.$router.push(this.localePath('/login'));
+        } else {
+          this.showToast(data.message || this.$t('nav.deleteFailed'), 'error');
+        }
+      } catch (error) {
+        console.error('注销账号错误:', error);
+        this.showToast(this.$t('nav.deleteFailed'), 'error');
+      } finally {
+        this.isDeletingAccount = false;
+        this.showDeleteModal = false;
+        this.deleteConfirmText = '';
+      }
     },
     async fetchAvatar() {
       try {
@@ -580,6 +656,99 @@ export default {
 
 .dropdown-item:hover {
   background-color: var(--bg-3);
+}
+
+.dropdown-item.danger {
+  color: #ef4444;
+}
+
+.dropdown-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.delete-modal {
+  max-width: 420px;
+}
+
+.delete-header h3 {
+  color: #ef4444 !important;
+}
+
+.delete-body {
+  padding: 1.5rem;
+}
+
+.delete-warning {
+  color: #ef4444;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.delete-hint {
+  color: var(--text-3);
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.delete-input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  background-color: var(--bg-3);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-1);
+  font-size: 0.95rem;
+  margin-bottom: 1.2rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.delete-input:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  padding: 0.6rem 1.2rem;
+  background: var(--bg-3);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: var(--bg-4);
+}
+
+.confirm-delete-btn {
+  padding: 0.6rem 1.2rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.confirm-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .menu-icon {

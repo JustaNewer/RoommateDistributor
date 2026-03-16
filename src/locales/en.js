@@ -23,6 +23,15 @@ export default {
     profile: 'Profile',
     logout: 'Logout',
     langSwitch: '中',
+    deleteAccount: 'Delete Account',
+    deleteAccountTitle: 'Delete Account',
+    deleteWarning: 'This will permanently delete your account and all data. This cannot be undone!',
+    deleteHint: 'Type "delete" to confirm:',
+    deletePlaceholder: 'Type delete',
+    confirmDelete: 'Confirm Delete',
+    deleting: 'Deleting...',
+    cancel: 'Cancel',
+    deleteFailed: 'Failed to delete account, please try again',
   },
 
   // Login page
@@ -51,6 +60,10 @@ export default {
     registerSuccess: 'Registration successful',
     registerFailed: 'Registration failed',
     networkError: 'Network error, please try again later',
+    roleLabel: 'Select Role',
+    roleResident: 'Resident',
+    roleAdmin: 'Admin',
+    selectRole: 'Please select a role',
   },
 
   // Home page

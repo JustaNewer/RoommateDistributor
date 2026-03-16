@@ -23,6 +23,15 @@ export default {
     profile: '个人资料',
     logout: '退出登录',
     langSwitch: 'EN',
+    deleteAccount: '注销账号',
+    deleteAccountTitle: '注销账号',
+    deleteWarning: '此操作将永久删除您的账号及所有数据，且不可恢复！',
+    deleteHint: '请输入 "delete" 以确认注销：',
+    deletePlaceholder: '输入 delete',
+    confirmDelete: '确认注销',
+    deleting: '注销中...',
+    cancel: '取消',
+    deleteFailed: '注销失败，请稍后重试',
   },
 
   // 登录页
@@ -51,6 +60,10 @@ export default {
     registerSuccess: '注册成功',
     registerFailed: '注册失败',
     networkError: '网络错误，请稍后重试',
+    roleLabel: '选择身份',
+    roleResident: '住户',
+    roleAdmin: '管理员',
+    selectRole: '请选择身份',
   },
 
   // 首页

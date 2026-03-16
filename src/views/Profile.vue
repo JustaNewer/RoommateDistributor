@@ -48,7 +48,7 @@
             <span>{{ username }}</span>
           </div>
 
-          <div class="info-form">
+          <div class="info-form" v-if="userRole !== 'admin'">
             <div class="form-row">
               <label>{{ $t('profile.realName') }}</label>
               <input type="text" v-model="profileForm.real_name" :placeholder="$t('profile.realNamePlaceholder')" />
@@ -141,8 +141,8 @@
           </button>
         </div>
 
-        <!-- 性格测试部分 -->
-        <div class="personality-section">
+        <!-- 性格测试部分（仅住户和超级账号可见） -->
+        <div class="personality-section" v-if="userRole !== 'admin'">
           <h2>{{ $t('profile.personalityTest') }}</h2>
           <div class="tags-container" v-if="userTags.length > 0">
             <h3>{{ $t('profile.myTags') }}</h3>
@@ -188,6 +188,7 @@ export default {
   data() {
     return {
       username: localStorage.getItem('username') || '用户',
+      userRole: localStorage.getItem('userRole') || 'resident',
       avatarUrl: null,
       showAIModal: false,
       passwordForm: {

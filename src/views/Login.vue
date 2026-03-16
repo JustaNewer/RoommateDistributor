@@ -231,6 +231,22 @@
               </div>
             </div>
 
+            <div class="field">
+              <label class="field-label">{{ $t('login.roleLabel') }}</label>
+              <div class="role-selector">
+                <label class="role-option" :class="{ active: registerForm.role === 'resident' }">
+                  <input type="radio" v-model="registerForm.role" value="resident" class="role-radio" />
+                  <span class="role-icon">🏠</span>
+                  <span class="role-text">{{ $t('login.roleResident') }}</span>
+                </label>
+                <label class="role-option" :class="{ active: registerForm.role === 'admin' }">
+                  <input type="radio" v-model="registerForm.role" value="admin" class="role-radio" />
+                  <span class="role-icon">🔧</span>
+                  <span class="role-text">{{ $t('login.roleAdmin') }}</span>
+                </label>
+              </div>
+            </div>
+
             <!-- Message -->
             <transition name="msg-fade">
               <div v-if="registerMessage.content" class="msg" :class="registerMessage.type">
@@ -282,7 +298,8 @@ export default {
       registerForm: {
         username: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        role: ''
       },
       loginMessage: {
         content: '',
@@ -308,7 +325,7 @@ export default {
       this.loginMessage.content = '';
       this.registerMessage.content = '';
       this.loginForm = { username: '', password: '' };
-      this.registerForm = { username: '', password: '', confirmPassword: '' };
+      this.registerForm = { username: '', password: '', confirmPassword: '', role: '' };
       this.passwordVisibility = { login: false, register: false, confirm: false };
     },
     async handleLogin() {
@@ -329,6 +346,7 @@ export default {
           localStorage.setItem('userToken', data.token);
           localStorage.setItem('userId', String(data.user.id));
           localStorage.setItem('username', data.user.username);
+          localStorage.setItem('userRole', data.user.role);
           const redirectPath = this.$route.query.redirect || '/';
           this.$router.push(redirectPath);
         } else {
@@ -350,6 +368,10 @@ export default {
         this.registerMessage = { content: this.$t('login.passwordMismatch'), type: 'error' };
         return;
       }
+      if (!this.registerForm.role) {
+        this.registerMessage = { content: this.$t('login.selectRole'), type: 'error' };
+        return;
+      }
       try {
         this.isLoading = true;
         const response = await fetch('http://localhost:3000/api/auth/register', {
@@ -357,7 +379,8 @@ export default {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: this.registerForm.username,
-            password: this.registerForm.password
+            password: this.registerForm.password,
+            role: this.registerForm.role
           })
         });
         const data = await response.json();
@@ -757,6 +780,48 @@ export default {
 .msg-fade-leave-to     { opacity: 0; }
 
 /* ─────────── Responsive ─────────── */
+.role-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.role-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--login-input-border);
+  border-radius: 10px;
+  background: var(--login-input-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-option:hover {
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.role-option.active {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.15);
+}
+
+.role-radio {
+  display: none;
+}
+
+.role-icon {
+  font-size: 1.2rem;
+}
+
+.role-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--login-text);
+}
+
 @media (max-width: 768px) {
   .left-panel { display: none; }
   .right-panel { padding: 1.5rem; }

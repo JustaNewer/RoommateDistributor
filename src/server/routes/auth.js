@@ -11,13 +11,21 @@ const JWT_EXPIRES_IN = '24h'; // 令牌24小时后过期
 // 用户注册
 router.post('/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, role } = req.body;
 
         // 验证用户名和密码是否存在
         if (!username || !password) {
             return res.status(400).json({
                 success: false,
                 message: '用户名和密码不能为空'
+            });
+        }
+
+        // 验证 role 必须是 admin 或 resident
+        if (!role || !['admin', 'resident'].includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: '请选择有效的身份（管理员或住户）'
             });
         }
 
@@ -37,10 +45,10 @@ router.post('/register', async (req, res) => {
         // 对密码进行SHA256加密
         const hashedPassword = hashPassword(password);
 
-        // 插入新用户
+        // 插入新用户（含角色）
         await db.execute(
-            'INSERT INTO Users (username, password) VALUES (?, ?)',
-            [username, hashedPassword]
+            'INSERT INTO Users (username, password, role) VALUES (?, ?, ?)',
+            [username, hashedPassword, role]
         );
 
         res.status(201).json({
@@ -72,9 +80,9 @@ router.post('/login', async (req, res) => {
         // 对输入的密码进行SHA256加密
         const hashedPassword = hashPassword(password);
 
-        // 查询用户
+        // 查询用户（含 role）
         const [users] = await db.execute(
-            'SELECT user_id, username FROM Users WHERE username = ? AND password = ?',
+            'SELECT user_id, username, role FROM Users WHERE username = ? AND password = ?',
             [username, hashedPassword]
         );
 
@@ -98,7 +106,8 @@ router.post('/login', async (req, res) => {
             message: '登录成功',
             user: {
                 id: users[0].user_id,
-                username: users[0].username
+                username: users[0].username,
+                role: users[0].role
             },
             token: token,
             expiresIn: JWT_EXPIRES_IN
@@ -205,6 +214,51 @@ router.post('/change-password', async (req, res) => {
             success: false,
             message: '服务器错误'
         });
+    }
+});
+
+// 注销账号（删除用户所有数据）
+router.delete('/delete-account/:userId', async (req, res) => {
+    const conn = await db.getConnection();
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ success: false, message: '缺少用户ID' });
+        }
+
+        await conn.beginTransaction();
+
+        // 1. 删除该用户的宿舍申请记录
+        await conn.execute('DELETE FROM DormApplication WHERE user_id = ?', [userId]);
+
+        // 2. 删除该用户的入住记录
+        await conn.execute('DELETE FROM DormOccupants WHERE user_id = ?', [userId]);
+
+        // 3. 删除该用户创建的宿舍（级联删除：申请→入住→房间→宿舍）
+        const [createdDorms] = await conn.execute(
+            'SELECT dorm_id FROM Dorms WHERE creator_user_id = ?', [userId]
+        );
+        for (const dorm of createdDorms) {
+            await conn.execute('DELETE FROM DormApplication WHERE dorm_id = ?', [dorm.dorm_id]);
+            await conn.execute(
+                'DELETE FROM DormOccupants WHERE room_id IN (SELECT room_id FROM Rooms WHERE dorm_id = ?)',
+                [dorm.dorm_id]
+            );
+            await conn.execute('DELETE FROM Rooms WHERE dorm_id = ?', [dorm.dorm_id]);
+            await conn.execute('DELETE FROM Dorms WHERE dorm_id = ?', [dorm.dorm_id]);
+        }
+
+        // 4. 删除用户本身
+        await conn.execute('DELETE FROM Users WHERE user_id = ?', [userId]);
+
+        await conn.commit();
+        res.json({ success: true, message: '账号已注销' });
+    } catch (error) {
+        await conn.rollback();
+        console.error('注销账号错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    } finally {
+        conn.release();
     }
 });
 

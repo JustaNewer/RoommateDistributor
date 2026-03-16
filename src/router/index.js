@@ -40,19 +40,19 @@ function makeRoutes(prefix = '') {
             path: `${prefix}/created-dorms`,
             name: `CreatedDorms${suffix}`,
             component: CreatedDorms,
-            meta: { requiresAuth: true, lang }
+            meta: { requiresAuth: true, lang, roles: ['admin', 'super_account'] }
         },
         {
             path: `${prefix}/joined-dorms`,
             name: `JoinedDorms${suffix}`,
             component: JoinedDorms,
-            meta: { requiresAuth: true, lang }
+            meta: { requiresAuth: true, lang, roles: ['resident', 'super_account'] }
         },
         {
             path: `${prefix}/personality-test`,
             name: `PersonalityTest${suffix}`,
             component: PersonalityTest,
-            meta: { requiresAuth: true, lang }
+            meta: { requiresAuth: true, lang, roles: ['resident', 'super_account'] }
         },
         {
             path: `${prefix}/dorm/:id`,
@@ -106,6 +106,15 @@ router.beforeEach((to, from, next) => {
     if (to.meta.requiresGuest && isAuthenticated) {
         next(lang === 'en' ? '/en/' : '/')
         return
+    }
+
+    // 角色权限检查
+    if (to.meta.roles && isAuthenticated) {
+        const userRole = localStorage.getItem('userRole') || 'resident'
+        if (!to.meta.roles.includes(userRole)) {
+            next(lang === 'en' ? '/en/' : '/')
+            return
+        }
     }
 
     next()
