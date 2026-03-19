@@ -47,6 +47,12 @@
             <span class="label">{{ $t('dormDetail.roomsPerFloor') }}：</span>
             <span class="value">{{ dormData.rooms_per_floor }}{{ $t('dormDetail.roomUnit') }}</span>
           </div>
+          <div class="info-item" v-if="dormData.gender">
+            <span class="label">{{ $i18n.locale === 'en' ? 'Type' : '宿舍类型' }}：</span>
+            <span class="value dorm-gender-tag" :class="dormData.gender">
+              {{ dormData.gender === 'male' ? ($i18n.locale === 'en' ? 'Male Dorm' : '男生宿舍') : ($i18n.locale === 'en' ? 'Female Dorm' : '女生宿舍') }}
+            </span>
+          </div>
           <div class="info-item occupancy-legend">
             <span class="legend-item">
               <span class="bed-icon empty"></span>
@@ -77,7 +83,15 @@
               <div v-for="room in rooms" :key="room.room_id" class="room" :class="{'full': room.current_occupants === room.capacity}">
                 <div class="room-header">
                   <div class="room-number">{{ room.room_number }}</div>
-                  <div class="occupancy-status">{{ room.current_occupants }}/{{ room.capacity }}</div>
+                  <div class="room-header-right">
+                    <span
+                      v-if="room.current_occupants >= 2"
+                      class="report-icon"
+                      title="查看兼容性报告"
+                      @click.stop="fetchRoomReport(room.room_id, room.room_number)"
+                    >📊</span>
+                    <div class="occupancy-status">{{ room.current_occupants }}/{{ room.capacity }}</div>
+                  </div>
                 </div>
                 <div class="beds-container">
                   <div 
@@ -112,18 +126,33 @@
     <div class="user-tooltip" v-if="showTooltip" :style="tooltipPosition">
       <div v-if="loadingTooltip" class="tooltip-loading">加载中...</div>
       <div v-else class="tooltip-content">
-        <div class="tooltip-avatar">
-          <img v-if="tooltipUser.avatar_url" :src="tooltipUser.avatar_url" alt="Avatar">
-          <div v-else class="default-avatar">{{ tooltipUser.username ? tooltipUser.username.charAt(0).toUpperCase() : 'U' }}</div>
+        <div class="tooltip-header">
+          <div class="tooltip-avatar">
+            <img v-if="tooltipUser.avatar_url" :src="tooltipUser.avatar_url" alt="Avatar">
+            <div v-else class="default-avatar">{{ tooltipUser.username ? tooltipUser.username.charAt(0).toUpperCase() : 'U' }}</div>
+          </div>
+          <div class="tooltip-name-area">
+            <div class="tooltip-name-row">
+              <span class="tooltip-username">{{ tooltipUser.username || '未知用户' }}</span>
+              <span
+                v-if="tooltipUser.gender"
+                class="gender-badge"
+                :class="tooltipUser.gender === 'male' ? 'male' : 'female'"
+              >{{ tooltipUser.gender === 'male' ? ($i18n.locale === 'en' ? 'M' : '男') : ($i18n.locale === 'en' ? 'F' : '女') }}</span>
+            </div>
+          </div>
         </div>
-        <div class="tooltip-info">
-          <div class="tooltip-name-row">
-            <span class="tooltip-username">{{ tooltipUser.username || '未知用户' }}</span>
-            <span
-              v-if="tooltipUser.gender"
-              class="gender-badge"
-              :class="tooltipUser.gender === 'male' ? 'male' : 'female'"
-            >{{ tooltipUser.gender === 'male' ? ($i18n.locale === 'en' ? 'M' : '男') : ($i18n.locale === 'en' ? 'F' : '女') }}</span>
+        <div class="tooltip-details">
+          <div class="tooltip-sleep" v-if="tooltipUser.sleep_time_start || tooltipUser.sleep_time_end">
+            <span class="detail-icon">🌙</span>
+            <span>{{ tooltipUser.sleep_time_start || '?' }} ~ {{ tooltipUser.sleep_time_end || '?' }}</span>
+          </div>
+          <div class="tooltip-nap" v-if="tooltipUser.has_nap">
+            <span class="detail-icon">😴</span>
+            <span>午睡 {{ tooltipUser.nap_time_start || '?' }} ~ {{ tooltipUser.nap_time_end || '?' }}</span>
+          </div>
+          <div class="tooltip-profile" v-if="tooltipUser.user_tags">
+            {{ tooltipUser.user_tags }}
           </div>
         </div>
       </div>
@@ -155,6 +184,23 @@
         </div>
       </div>
     </div>
+
+    <!-- 兼容性报告弹窗 -->
+    <transition name="modal-fade">
+      <div class="report-overlay" v-if="showReport" @click.self="showReport = false">
+        <div class="report-modal">
+          <div class="report-modal-header">
+            <h3>📊 {{ reportRoomNumber }} 兼容性报告</h3>
+            <button class="close-btn" @click="showReport = false">×</button>
+          </div>
+          <div class="report-modal-body">
+            <div v-if="loadingReport" class="report-loading">分析中...</div>
+            <div v-else-if="reportContent" class="report-text">{{ reportContent }}</div>
+            <div v-else class="report-empty">暂无兼容性报告。分配舍友后将自动生成。</div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -216,7 +262,13 @@ export default {
       showDeleteConfirm: false,
       pendingDeleteUserId: null,
       pendingDeleteRoomId: null,
-      deleteUserInfo: null
+      deleteUserInfo: null,
+
+      // 兼容性报告
+      showReport: false,
+      loadingReport: false,
+      reportContent: '',
+      reportRoomNumber: ''
     }
   },
   computed: {
@@ -841,6 +893,31 @@ export default {
         .find(r => r.room_id === roomId);
         
       return room && bedIndex < room.current_occupants;
+    },
+    async fetchRoomReport(roomId, roomNumber) {
+      this.showReport = true;
+      this.loadingReport = true;
+      this.reportContent = '';
+      this.reportRoomNumber = roomNumber;
+      try {
+        // Try to use in-memory data first
+        const allRooms = Object.values(this.roomsByFloor).flat();
+        const cachedRoom = allRooms.find(r => r.room_id === roomId);
+        if (cachedRoom?.compatibility_report) {
+          this.reportContent = cachedRoom.compatibility_report;
+          this.loadingReport = false;
+          return;
+        }
+        const response = await fetch(`http://localhost:3000/api/dorm/room-report/${roomId}`);
+        const data = await response.json();
+        if (response.ok && data.data?.report) {
+          this.reportContent = data.data.report;
+        }
+      } catch (error) {
+        console.error('获取兼容性报告失败:', error);
+      } finally {
+        this.loadingReport = false;
+      }
     }
   },
   mounted() {
@@ -982,6 +1059,22 @@ export default {
   font-size: 1.1rem;
 }
 
+.dorm-gender-tag {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.dorm-gender-tag.male {
+  color: #4285F4;
+  background: rgba(66, 133, 244, 0.12);
+}
+.dorm-gender-tag.female {
+  color: #EA4395;
+  background: rgba(234, 67, 149, 0.12);
+}
+
 .floors-container {
   display: flex;
   flex-direction: column;
@@ -1031,6 +1124,23 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.room-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-icon {
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.report-icon:hover {
+  opacity: 1;
+  transform: scale(1.2);
 }
 
 .room-number {
@@ -1088,18 +1198,16 @@ export default {
 .user-tooltip {
   position: fixed;
   z-index: 1000;
-  max-width: 250px;
-  min-width: 120px;
-  background: rgba(42, 42, 42, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 8px;
-  padding: 0.8rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 360px;
+  min-width: 160px;
+  background: rgba(42, 42, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  padding: 0.85rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   pointer-events: none;
-  transition: all 0.2s ease;
-  transform: translateY(5px);
   opacity: 0.95;
   animation: tooltip-fade-in 0.2s forwards;
 }
@@ -1123,8 +1231,14 @@ export default {
 
 .tooltip-content {
   display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tooltip-header {
+  display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.7rem;
 }
 
 .tooltip-avatar {
@@ -1135,6 +1249,7 @@ export default {
   background-color: var(--bg-1);
   border: 1px solid #4CAF50;
   box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+  flex-shrink: 0;
 }
 
 .tooltip-avatar img {
@@ -1154,8 +1269,9 @@ export default {
   font-weight: bold;
 }
 
-.tooltip-info {
+.tooltip-name-area {
   flex: 1;
+  min-width: 0;
 }
 
 .tooltip-name-row {
@@ -1166,7 +1282,7 @@ export default {
 
 .tooltip-username {
   font-size: 0.9rem;
-  color: var(--text-1);
+  color: #fff;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -1194,6 +1310,36 @@ export default {
   background-color: rgba(234, 67, 149, 0.2);
   color: #EA4395;
   border: 1.5px solid rgba(234, 67, 149, 0.5);
+}
+
+.tooltip-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.5rem;
+}
+
+.tooltip-sleep,
+.tooltip-nap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #ccc;
+}
+
+.detail-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.tooltip-profile {
+  font-size: 0.75rem;
+  color: #b0b0b0;
+  line-height: 1.55;
+  margin-top: 0.2rem;
+  word-break: break-all;
 }
 
 .dragged-bed {
@@ -1427,6 +1573,90 @@ export default {
 @keyframes dialog-slide-in {
   from { transform: translateY(50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* 兼容性报告弹窗 */
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  animation: overlay-fade-in 0.25s ease;
+}
+
+.report-modal {
+  width: 90%;
+  max-width: 460px;
+  background: var(--bg-2);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: dialog-slide-in 0.3s ease;
+}
+
+.report-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border-solid);
+}
+.report-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #4CAF50;
+}
+.report-modal-header .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.3rem;
+  transition: color 0.2s;
+}
+.report-modal-header .close-btn:hover {
+  color: #f44336;
+}
+
+.report-modal-body {
+  padding: 1.3rem 1.2rem;
+  min-height: 80px;
+}
+
+.report-loading {
+  text-align: center;
+  color: var(--text-3);
+  font-size: 0.9rem;
+}
+
+.report-text {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+
+.report-empty {
+  text-align: center;
+  color: var(--text-3);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
 }
 
 </style> 

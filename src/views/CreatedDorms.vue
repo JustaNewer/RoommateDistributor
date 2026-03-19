@@ -168,10 +168,8 @@
                 <img :src="app.avatar_url || '/default-avatar.png'" class="user-avatar" :alt="app.username">
                 <div class="user-details">
                   <h4>{{ app.username }}</h4>
-                  <div class="user-tags" v-if="app.user_tags">
-                    <span v-for="(tag, index) in formatTags(app.user_tags)" :key="index" class="tag">
-                      #{{ tag }}
-                    </span>
+                  <div class="user-profile-text" v-if="app.user_tags">
+                    {{ app.user_tags }}
                   </div>
                   <div class="application-time">
                     申请时间: {{ formatDate(app.application_time) }}
@@ -204,8 +202,8 @@
             <div class="assignment-result-summary">
               <div class="result-icon">✓</div>
               <div class="result-text">
-                <h4>智能分配完成</h4>
-                <p>已根据用户个性标签完成舍友智能分配</p>
+                <h4>三层智能分配完成</h4>
+                <p>📐 作息分组 → 🧠 AI性格优化 → 📊 兼容性报告</p>
               </div>
             </div>
             
@@ -223,6 +221,11 @@
                     <span class="user-tags">{{ getUserTagsById(userId) }}</span>
                   </div>
                 </div>
+              </div>
+
+              <div v-if="compatibilityReports[roomId]" class="room-compatibility-report">
+                <div class="report-label">📊 AI兼容性分析</div>
+                <div class="report-content">{{ compatibilityReports[roomId] }}</div>
               </div>
             </div>
           </div>
@@ -263,7 +266,7 @@
                   <div class="user-avatar">{{ occupant.username.charAt(0) }}</div>
                   <div class="user-details">
                     <span class="user-name">{{ occupant.username }}</span>
-                    <span class="user-tags">{{ occupant.user_tags || '无标签' }}</span>
+                    <span class="user-profile-tag">{{ occupant.user_tags || '暂无性格画像' }}</span>
                   </div>
                 </div>
               </div>
@@ -319,6 +322,7 @@ export default {
         originalRoomsPerFloor: 1
       },
       roomAssignments: {},
+      compatibilityReports: {},
       showAssignmentResults: false,
       roomData: [],
       loadingAssignmentResults: false,
@@ -597,6 +601,7 @@ export default {
           
           // Store assignment results
           this.roomAssignments = data.data.roomAssignments;
+          this.compatibilityReports = data.data.compatibilityReports || {};
           this.showAssignmentResults = true;
           this.showToast('舍友分配成功！');
           // Refresh applications list
@@ -622,12 +627,14 @@ export default {
           this.assignProgress = Math.min(90, progress);
           
           // Update progress text based on completion percentage
-          if (this.assignProgress < 30) {
-            this.assignProgressText = '正在分析用户性格标签...';
-          } else if (this.assignProgress < 60) {
-            this.assignProgressText = '正在计算最佳舍友组合...';
+          if (this.assignProgress < 25) {
+            this.assignProgressText = '📐 第一层：按作息时间智能分组...';
+          } else if (this.assignProgress < 55) {
+            this.assignProgressText = '🧠 第二层：AI分析性格兼容性...';
+          } else if (this.assignProgress < 80) {
+            this.assignProgressText = '🤖 第三层：AI生成兼容性报告...';
           } else if (this.assignProgress < 90) {
-            this.assignProgressText = '正在分配用户到房间...';
+            this.assignProgressText = '📝 正在写入分配结果...';
           }
         } else {
           clearInterval(interval);
@@ -649,7 +656,7 @@ export default {
     getUserTagsById(userId) {
       // 从申请列表中查找用户标签
       const application = this.applications.find(app => app.user_id === Number(userId));
-      return application ? application.user_tags : '无标签';
+      return application ? application.user_tags : '暂无性格画像';
     },
     async handleViewRooms() {
       try {
@@ -1068,6 +1075,25 @@ export default {
   color: #aaa;
 }
 
+.user-profile-text {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  line-height: 1.6;
+  margin-top: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-1);
+  border-radius: 6px;
+  border-left: 2px solid #4CAF50;
+}
+
+.user-profile-tag {
+  font-size: 0.78rem;
+  color: var(--text-3);
+  line-height: 1.5;
+  display: block;
+  margin-top: 0.2rem;
+}
+
 .application-time {
   color: var(--text-3);
   font-size: 0.8rem;
@@ -1399,5 +1425,27 @@ export default {
     flex-direction: column;
     gap: 0;
   }
+}
+
+.room-compatibility-report {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(76, 175, 80, 0.08);
+  border-left: 3px solid #4CAF50;
+  border-radius: 0 6px 6px 0;
+}
+
+.report-label {
+  font-size: 0.75rem;
+  color: #4CAF50;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.report-content {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-2);
+  white-space: pre-wrap;
 }
 </style> 

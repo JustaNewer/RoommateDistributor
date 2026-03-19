@@ -93,6 +93,21 @@
                 </div>
 
                 <div class="form-group">
+                  <label>{{ $t('home.dormGender') || '宿舍类型' }}</label>
+                  <div class="radio-group">
+                    <label class="radio-label" v-for="g in genderOptions" :key="g.value">
+                      <input 
+                        type="radio" 
+                        :value="g.value" 
+                        v-model="dormForm.gender"
+                        name="dormGender"
+                      >
+                      {{ g.label }}
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group">
                   <label>{{ $t('home.capacity') }}</label>
                   <div class="radio-group">
                     <label class="radio-label" v-for="size in [2, 4, 6, 8]" :key="size">
@@ -245,6 +260,7 @@ export default {
       dormForm: {
         dormName: '',
         schoolName: '',
+        gender: 'male',
         space: 2,
         floorCount: 1,
         roomsPerFloor: 1
@@ -260,6 +276,12 @@ export default {
     }
   },
   computed: {
+    genderOptions() {
+      return [
+        { value: 'male', label: this.$i18n.locale === 'en' ? 'Male Dorm' : '男生宿舍' },
+        { value: 'female', label: this.$i18n.locale === 'en' ? 'Female Dorm' : '女生宿舍' }
+      ];
+    },
     canCreateDorm() {
       return this.userRole === 'super_account' || this.userRole === 'admin';
     },
@@ -351,6 +373,11 @@ export default {
           return;
         }
 
+        if (!this.dormForm.gender) {
+          this.showToast('请选择宿舍类型（男生/女生宿舍）', 'error');
+          return;
+        }
+
         if (!this.dormForm.space || !this.dormForm.floorCount || !this.dormForm.roomsPerFloor) {
           this.showToast('请填写宿舍容量、楼层数和每层房间数', 'error');
           return;
@@ -393,6 +420,7 @@ export default {
           this.dormForm = {
             dormName: '',
             schoolName: '',
+            gender: 'male',
             space: 2,
             floorCount: 1,
             roomsPerFloor: 1

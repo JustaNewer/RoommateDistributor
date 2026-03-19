@@ -203,17 +203,9 @@
         <!-- 性格测试部分（仅住户和超级账号可见） -->
         <div class="personality-section" v-if="userRole !== 'admin'">
           <h2>{{ $t('profile.personalityTest') }}</h2>
-          <div class="tags-container" v-if="userTags.length > 0">
+          <div class="tags-container" v-if="personalityProfile">
             <h3>{{ $t('profile.myTags') }}</h3>
-            <div class="tags-list">
-              <span 
-                v-for="tag in userTags" 
-                :key="tag" 
-                class="tag"
-              >
-                {{ tag }}
-              </span>
-            </div>
+            <div class="profile-text">{{ personalityProfile }}</div>
           </div>
           <div class="vector-container" v-if="userVector">
             <h3>{{ $t('questionnaire.title') }}</h3>
@@ -225,7 +217,7 @@
           </div>
           <p class="test-description">{{ $t('profile.testDesc') }}</p>
           <button class="test-btn" @click="showTestChoice = true">
-            {{ (userTags.length > 0 || userVector) ? $t('profile.retakeTest') : $t('profile.startTest') }}
+            {{ (personalityProfile || userVector) ? $t('profile.retakeTest') : $t('profile.startTest') }}
             <span class="test-icon">🎯</span>
           </button>
         </div>
@@ -293,6 +285,7 @@ export default {
         confirmPassword: false
       },
       userTags: [],
+      personalityProfile: '',
       userVector: null,
       showTestChoice: false,
       profileForm: {
@@ -434,11 +427,12 @@ export default {
         const response = await fetch(`http://localhost:3000/api/user/${userId}/tags`);
         const data = await response.json();
         
-        if (response.ok && data.data.user_tags) {
-          this.userTags = data.data.user_tags;
+        if (response.ok && data.data) {
+          this.userTags = data.data.user_tags || [];
+          this.personalityProfile = data.data.profile || '';
         }
       } catch (error) {
-        console.error('获取用户标签失败:', error);
+        console.error('获取性格画像失败:', error);
       }
     },
     async fetchUserVector() {
@@ -843,6 +837,16 @@ input::placeholder {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.profile-text {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--text-2);
+  padding: 0.8rem 1rem;
+  background-color: var(--bg-1);
+  border-radius: 10px;
+  border-left: 3px solid #4CAF50;
 }
 
 .tag {

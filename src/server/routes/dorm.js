@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { generateDormHash } = require('../utils/dorm');
+const { assignRoommates } = require('../utils/roommateAssignment');
 const { authenticateToken } = require('../middleware/auth');
 
 // 创建宿舍
@@ -13,14 +14,22 @@ router.post('/create', async (req, res) => {
             space,
             floorCount,
             roomsPerFloor,
-            userId  // 从请求中获取创建者ID
+            gender,
+            userId
         } = req.body;
 
         // 验证必要字段
-        if (!dormName || !schoolName || !space || !floorCount || !roomsPerFloor || !userId) {
+        if (!dormName || !schoolName || !space || !floorCount || !roomsPerFloor || !userId || !gender) {
             return res.status(400).json({
                 success: false,
                 message: '请填写所有必要信息'
+            });
+        }
+
+        if (!['male', 'female'].includes(gender)) {
+            return res.status(400).json({
+                success: false,
+                message: '宿舍性别必须为 male 或 female'
             });
         }
 
@@ -58,9 +67,9 @@ router.post('/create', async (req, res) => {
             // 插入宿舍数据
             const [dormResult] = await connection.execute(
                 `INSERT INTO Dorms 
-                (dorm_name, creator_user_id, dorm_hash, school_name, space, floor_count, rooms_per_floor) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [dormName, userId, dormHash, schoolName, space, floorCount, roomsPerFloor]
+                (dorm_name, creator_user_id, dorm_hash, school_name, space, floor_count, rooms_per_floor, gender) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [dormName, userId, dormHash, schoolName, space, floorCount, roomsPerFloor, gender]
             );
 
             const dormId = dormResult.insertId;
@@ -147,6 +156,7 @@ router.get('/created/:userId', async (req, res) => {
                 d.rooms_per_floor,
                 d.dorm_hash as hash,
                 d.creator_user_id,
+                d.gender,
                 u.username as creator_name,
                 u.avatar_url as creator_avatar
              FROM Dorms d 
@@ -185,7 +195,8 @@ router.get('/:dormId', async (req, res) => {
                 space,
                 floor_count,
                 rooms_per_floor,
-                creator_user_id
+                creator_user_id,
+                gender
              FROM Dorms
              WHERE dorm_id = ?`,
             [dormId]
@@ -286,7 +297,8 @@ router.get('/room-status/:dormId', async (req, res) => {
                 room_id,
                 room_number,
                 capacity,
-                current_occupants
+                current_occupants,
+                compatibility_report
              FROM Rooms
              WHERE dorm_id = ?
              ORDER BY room_number ASC`,
@@ -349,13 +361,19 @@ router.get('/room-occupants/:roomId', async (req, res) => {
             });
         }
 
-        // 获取房间入住用户信息
+        // 获取房间入住用户信息（含性格画像和睡眠时间）
         const [occupants] = await db.execute(
             `SELECT 
                 do.user_id,
                 u.username,
                 u.avatar_url,
-                u.gender
+                u.gender,
+                u.user_tags,
+                u.sleep_time_start,
+                u.sleep_time_end,
+                u.has_nap,
+                u.nap_time_start,
+                u.nap_time_end
              FROM DormOccupants do
              JOIN Users u ON do.user_id = u.user_id
              WHERE do.room_id = ?`,
@@ -371,7 +389,13 @@ router.get('/room-occupants/:roomId', async (req, res) => {
                     user_id: occupant.user_id,
                     username: occupant.username,
                     avatar_url: occupant.avatar_url,
-                    gender: occupant.gender || null
+                    gender: occupant.gender || null,
+                    user_tags: occupant.user_tags || null,
+                    sleep_time_start: occupant.sleep_time_start || null,
+                    sleep_time_end: occupant.sleep_time_end || null,
+                    has_nap: occupant.has_nap || 0,
+                    nap_time_start: occupant.nap_time_start || null,
+                    nap_time_end: occupant.nap_time_end || null
                 };
             }
         });
@@ -1260,242 +1284,89 @@ router.post('/assign-roommates', async (req, res) => {
             };
         });
 
-        // 调用DeepSeek API进行舍友匹配
-        const roomAssignments = await assignRoommatesWithAI(applicants, rooms, roomCapacity);
+        // ══ 三层智能分配系统 ══
+        const { assignments: roomAssignments, reports } = await assignRoommates(applicants, rooms, roomCapacity);
 
-        // 开始事务
+        // 开始事务，写入分配结果
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
         try {
-            // 处理分配结果
-            const validRoomAssignments = {};
             let assignedUserCount = 0;
 
             for (const roomId in roomAssignments) {
                 const usersInRoom = roomAssignments[roomId];
                 const room = rooms.find(r => r.room_id === Number(roomId));
+                if (!room) continue;
 
-                if (!room) {
-                    console.warn(`无效的房间ID: ${roomId}，跳过处理`);
-                    continue;
-                }
+                const validUserIds = usersInRoom.filter(uid =>
+                    applications.some(app => app.user_id === Number(uid))
+                );
 
-                // 验证所有分配的用户ID都在申请列表中
-                const validUserIds = [];
-                for (const userId of usersInRoom) {
-                    // 检查用户ID是否在申请列表中
-                    const isValidUser = applications.some(app => app.user_id === Number(userId));
-
-                    if (isValidUser) {
-                        validUserIds.push(userId);
-                    } else {
-                        console.log(`跳过无效的用户ID: ${userId}，该用户不在申请列表中`);
-                    }
-                }
-
-                // 检查房间容量
                 if (validUserIds.length > (room.capacity - room.current_occupants)) {
-                    console.warn(`房间 ${room.room_number} 分配超过容量，调整分配数量`);
-                    // 截取到可用容量
                     validUserIds.splice(room.capacity - room.current_occupants);
                 }
 
-                // 只处理有效的用户ID
-                if (validUserIds.length > 0) {
-                    validRoomAssignments[roomId] = validUserIds;
-                    assignedUserCount += validUserIds.length;
+                for (const userId of validUserIds) {
+                    const [existing] = await connection.execute(
+                        'SELECT * FROM DormOccupants WHERE dorm_id = ? AND user_id = ?',
+                        [dormId, userId]
+                    );
 
-                    // 更新DormOccupants表
-                    for (const userId of validUserIds) {
-                        // 检查是否已存在该记录，避免重复插入
-                        const [existingRecord] = await connection.execute(
-                            'SELECT * FROM DormOccupants WHERE dorm_id = ? AND user_id = ?',
-                            [dormId, userId]
-                        );
-
-                        // 只有在记录不存在的情况下才插入
-                        if (existingRecord.length === 0) {
-                            await connection.execute(
-                                'INSERT INTO DormOccupants (dorm_id, user_id, room_id) VALUES (?, ?, ?)',
-                                [dormId, userId, roomId]
-                            );
-                        } else {
-                            console.log(`用户 ${userId} 已在宿舍 ${dormId} 中，跳过插入`);
-                        }
-
-                        // 更新 Users 表的 dorm_id
+                    if (existing.length === 0) {
                         await connection.execute(
-                            'UPDATE Users SET dorm_id = ? WHERE user_id = ?',
-                            [dormId, userId]
-                        );
-
-                        // 更新申请状态为approved
-                        await connection.execute(
-                            'UPDATE DormApplication SET application_status = "approved" WHERE dorm_id = ? AND user_id = ?',
-                            [dormId, userId]
+                            'INSERT INTO DormOccupants (dorm_id, user_id, room_id) VALUES (?, ?, ?)',
+                            [dormId, userId, roomId]
                         );
                     }
 
-                    // 更新房间当前入住人数
+                    await connection.execute(
+                        'UPDATE Users SET dorm_id = ? WHERE user_id = ?',
+                        [dormId, userId]
+                    );
+
+                    await connection.execute(
+                        'UPDATE DormApplication SET application_status = "approved" WHERE dorm_id = ? AND user_id = ?',
+                        [dormId, userId]
+                    );
+                }
+
+                if (validUserIds.length > 0) {
+                    assignedUserCount += validUserIds.length;
+
                     await connection.execute(
                         'UPDATE Rooms SET current_occupants = current_occupants + ? WHERE room_id = ?',
                         [validUserIds.length, roomId]
                     );
                 }
+
+                // 保存 AI 兼容性报告到房间
+                if (reports[roomId]) {
+                    await connection.execute(
+                        'UPDATE Rooms SET compatibility_report = ? WHERE room_id = ?',
+                        [reports[roomId], roomId]
+                    );
+                }
             }
 
-            // 验证是否所有申请者都已分配
             if (assignedUserCount !== applications.length) {
-                console.warn(`警告: 只有 ${assignedUserCount}/${applications.length} 名申请者被分配`);
+                console.warn(`警告: ${assignedUserCount}/${applications.length} 名申请者被分配`);
             }
 
-            // 检查是否有未分配的用户，将他们分配到有空间的房间
-            if (assignedUserCount < applicants.length) {
-                const unassignedUsers = applicants.filter(app => !validRoomAssignments.some(r => r.includes(app.userId)));
-                console.warn(`有 ${unassignedUsers.length} 个用户未被AI分配，尝试手动分配`);
-
-                // 计算每个房间当前的分配情况
-                const roomOccupancy = {};
-                for (const roomId in validRoomAssignments) {
-                    const room = rooms.find(r => r.room_id === Number(roomId));
-                    if (room) {
-                        roomOccupancy[roomId] = {
-                            room,
-                            currentUsers: validRoomAssignments[roomId].length,
-                            capacity: room.capacity - room.current_occupants
-                        };
-                    }
-                }
-
-                // 将未分配的房间也添加到占用情况
-                for (const room of rooms) {
-                    const roomId = room.room_id.toString();
-                    if (!roomOccupancy[roomId]) {
-                        roomOccupancy[roomId] = {
-                            room,
-                            currentUsers: 0,
-                            capacity: room.capacity - room.current_occupants
-                        };
-                    }
-                }
-
-                // 按优先级排序房间：
-                // 1. 优先填满那些已经有人但未满的房间
-                // 2. 避免创建单人住房（除非是最后一个房间）
-                const prioritizedRooms = Object.keys(roomOccupancy)
-                    .filter(roomId => roomOccupancy[roomId].capacity > 0) // 只考虑有空间的房间
-                    .sort((a, b) => {
-                        const roomA = roomOccupancy[a];
-                        const roomB = roomOccupancy[b];
-
-                        // 如果一个房间已经有人但未满，另一个是空房间，优先填满已有人的
-                        const aHasPeople = roomA.currentUsers > 0;
-                        const bHasPeople = roomB.currentUsers > 0;
-
-                        if (aHasPeople && !bHasPeople) return -1;
-                        if (!aHasPeople && bHasPeople) return 1;
-
-                        // 如果两个房间都已有人或都是空的，选择接近满的
-                        // 优先填满占用比例更高的房间
-                        const aFillRatio = roomA.currentUsers / roomA.capacity;
-                        const bFillRatio = roomB.currentUsers / roomB.capacity;
-
-                        return bFillRatio - aFillRatio; // 降序排列，填满比例高的排前面
-                    });
-
-                // 再次尝试分配用户
-                let userIndex = 0;
-                for (const roomId of prioritizedRooms) {
-                    if (userIndex >= unassignedUsers.length) break;
-
-                    const roomInfo = roomOccupancy[roomId];
-                    const remainingCapacity = roomInfo.capacity - roomInfo.currentUsers;
-
-                    // 决定分配数量
-                    let assignCount = Math.min(remainingCapacity, unassignedUsers.length - userIndex);
-
-                    // 避免单人住的情况（除非是最后一个房间或已经有人）
-                    const isLastRoom = roomId === prioritizedRooms[prioritizedRooms.length - 1];
-                    const alreadyHasPeople = roomInfo.currentUsers > 0;
-                    const wouldCreateSingleOccupancy = (roomInfo.currentUsers + assignCount === 1);
-
-                    if (wouldCreateSingleOccupancy && !isLastRoom && !alreadyHasPeople) {
-                        // 跳过该房间，避免创建单人住房
-                        continue;
-                    }
-
-                    // 分配用户到当前房间
-                    if (assignCount > 0) {
-                        if (!validRoomAssignments[roomId]) {
-                            validRoomAssignments[roomId] = [];
-                        }
-
-                        for (let i = 0; i < assignCount; i++) {
-                            if (userIndex < unassignedUsers.length) {
-                                const userId = unassignedUsers[userIndex].userId.toString();
-                                validRoomAssignments[roomId].push(userId);
-                                assignedUserCount++;
-                                console.log(`手动将用户 ${userId} 分配到房间 ${roomId}`);
-                                userIndex++;
-                            }
-                        }
-
-                        // 更新房间占用情况
-                        roomOccupancy[roomId].currentUsers += assignCount;
-                    }
-                }
-
-                // 如果还有未分配的用户（极端情况），将它们放入任何有空间的房间
-                if (userIndex < unassignedUsers.length) {
-                    console.warn(`仍有 ${unassignedUsers.length - userIndex} 个用户未分配，进行最后一轮分配`);
-
-                    for (const room of rooms) {
-                        const roomId = room.room_id.toString();
-                        const currentlyAssigned = validRoomAssignments[roomId]?.length || 0;
-                        const availableSpots = room.capacity - room.current_occupants - currentlyAssigned;
-
-                        if (availableSpots > 0) {
-                            if (!validRoomAssignments[roomId]) {
-                                validRoomAssignments[roomId] = [];
-                            }
-
-                            for (let i = 0; i < availableSpots && userIndex < unassignedUsers.length; i++) {
-                                const userId = unassignedUsers[userIndex].userId.toString();
-                                validRoomAssignments[roomId].push(userId);
-                                assignedUserCount++;
-                                console.log(`最终将用户 ${userId} 分配到房间 ${roomId}`);
-                                userIndex++;
-                            }
-                        }
-
-                        if (userIndex >= unassignedUsers.length) break;
-                    }
-                }
-
-                // 如果仍有未分配的用户，记录警告
-                if (userIndex < unassignedUsers.length) {
-                    console.warn(`警告: 仍有 ${unassignedUsers.length - userIndex} 个用户未能分配，可能是房间空间不足`);
-                }
-            }
-
-            // 提交事务
             await connection.commit();
 
-            // 处理返回结果
             res.status(200).json({
                 success: true,
                 message: '舍友分配成功',
                 data: {
-                    roomAssignments: validRoomAssignments
+                    roomAssignments,
+                    compatibilityReports: reports
                 }
             });
         } catch (error) {
-            // 如果出错，回滚事务
             await connection.rollback();
             throw error;
         } finally {
-            // 释放连接
             connection.release();
         }
     } catch (error) {
@@ -1507,8 +1378,52 @@ router.post('/assign-roommates', async (req, res) => {
     }
 });
 
-// 调用DeepSeek API进行舍友匹配
-async function assignRoommatesWithAI(applicants, rooms, roomCapacity) {
+// 获取房间兼容性报告
+router.get('/room-report/:roomId', async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        const [rows] = await db.execute(
+            'SELECT compatibility_report FROM Rooms WHERE room_id = ?',
+            [roomId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: '房间不存在' });
+        }
+        res.json({
+            success: true,
+            data: { report: rows[0].compatibility_report || null }
+        });
+    } catch (error) {
+        console.error('获取兼容性报告错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
+// 获取宿舍所有房间的兼容性报告
+router.get('/dorm-reports/:dormId', async (req, res) => {
+    try {
+        const { dormId } = req.params;
+        const [rows] = await db.execute(
+            'SELECT room_id, room_number, compatibility_report FROM Rooms WHERE dorm_id = ? AND compatibility_report IS NOT NULL',
+            [dormId]
+        );
+        const reports = {};
+        for (const row of rows) {
+            reports[row.room_id] = {
+                room_number: row.room_number,
+                report: row.compatibility_report
+            };
+        }
+        res.json({ success: true, data: reports });
+    } catch (error) {
+        console.error('获取宿舍兼容性报告错误:', error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
+// ═══ 以下为旧版分配函数（已废弃，由 utils/roommateAssignment.js 三层系统替代）═══
+// eslint-disable-next-line no-unused-vars
+async function _deprecated_assignRoommatesWithAI(applicants, rooms, roomCapacity) {
     // 如果申请人数少于等于一个房间容量，直接分配到一个房间
     if (applicants.length <= roomCapacity) {
         return {
@@ -1807,12 +1722,12 @@ ${JSON.stringify(availableRooms, null, 2)}
         console.error('AI分配舍友错误:', error);
 
         // 如果AI分配失败，使用简单算法均匀分配
-        return fallbackRoommateAssignment(applicants, rooms, roomCapacity);
+        return _deprecated_fallbackRoommateAssignment(applicants, rooms, roomCapacity);
     }
 }
 
-// 更新后的备用舍友分配算法，优先填满房间
-function fallbackRoommateAssignment(applicants, rooms, roomCapacity) {
+// eslint-disable-next-line no-unused-vars
+function _deprecated_fallbackRoommateAssignment(applicants, rooms, roomCapacity) {
     // 首先对房间进行排序，确保先使用当前入住人数更多的房间
     const sortedRooms = [...rooms].sort((a, b) => {
         // 首先按照已有入住人数降序排列（优先填满已有人的房间）
@@ -1987,7 +1902,8 @@ router.get('/rooms', async (req, res) => {
                 dorm_id,
                 room_number,
                 capacity,
-                current_occupants
+                current_occupants,
+                compatibility_report
              FROM Rooms
              WHERE dorm_id = ?
              ORDER BY room_number ASC`,
