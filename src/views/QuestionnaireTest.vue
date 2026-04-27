@@ -2,7 +2,7 @@
   <div class="questionnaire-page">
     <header class="q-header">
       <button class="back-btn" @click="handleBack">
-        {{ $t('personalityTest.back') }}
+        {{ $t('common.back') }}
       </button>
       <h1>{{ $t('questionnaire.title') }}</h1>
       <div class="header-toggles">

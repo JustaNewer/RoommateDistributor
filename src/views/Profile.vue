@@ -216,35 +216,11 @@
             </div>
           </div>
           <p class="test-description">{{ $t('profile.testDesc') }}</p>
-          <button class="test-btn" @click="showTestChoice = true">
+          <button class="test-btn" @click="goQuestionnaire">
             {{ (personalityProfile || userVector) ? $t('profile.retakeTest') : $t('profile.startTest') }}
             <span class="test-icon">🎯</span>
           </button>
         </div>
-
-        <!-- 测试方式选择弹窗 -->
-        <transition name="modal-fade">
-          <div class="test-choice-overlay" v-if="showTestChoice" @click.self="showTestChoice = false">
-            <div class="test-choice-modal">
-              <h2>{{ $t('testChoice.title') }}</h2>
-              <div class="choice-cards">
-                <div class="choice-card" @click="goAIChat">
-                  <div class="choice-icon">💬</div>
-                  <h3>{{ $t('testChoice.aiChat') }}</h3>
-                  <p>{{ $t('testChoice.aiChatDesc') }}</p>
-                </div>
-                <div class="choice-card" @click="goQuestionnaire">
-                  <div class="choice-icon">📋</div>
-                  <h3>{{ $t('testChoice.questionnaire') }}</h3>
-                  <p>{{ $t('testChoice.questionnaireDesc') }}</p>
-                </div>
-              </div>
-              <button class="close-modal-btn" @click="showTestChoice = false">
-                {{ $t('common.cancel') }}
-              </button>
-            </div>
-          </div>
-        </transition>
       </div>
     </main>
 
@@ -287,7 +263,6 @@ export default {
       userTags: [],
       personalityProfile: '',
       userVector: null,
-      showTestChoice: false,
       profileForm: {
         real_name: '',
         height: '',
@@ -407,12 +382,7 @@ export default {
     localePath(path) {
       return this.$i18n.locale === 'en' ? '/en' + path : path;
     },
-    goAIChat() {
-      this.showTestChoice = false;
-      this.$router.push(this.localePath('/personality-test'));
-    },
     goQuestionnaire() {
-      this.showTestChoice = false;
       this.$router.push(this.localePath('/questionnaire-test'));
     },
     generateAIAvatar() {
@@ -893,98 +863,6 @@ input::placeholder {
   font-size: 0.85rem;
   font-weight: 600;
   border: 1px solid rgba(76,175,80,0.25);
-}
-
-/* ─── 测试方式选择弹窗 ─── */
-.test-choice-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-.test-choice-modal {
-  background: var(--bg-2);
-  border-radius: 20px;
-  padding: 2rem;
-  max-width: 520px;
-  width: 100%;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-}
-.test-choice-modal h2 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: var(--text-1);
-}
-.choice-cards {
-  display: flex;
-  gap: 1rem;
-}
-.choice-card {
-  flex: 1;
-  background: var(--bg-3);
-  border-radius: 14px;
-  padding: 1.5rem 1.2rem;
-  cursor: pointer;
-  text-align: center;
-  border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-}
-.choice-card:hover {
-  border-color: #4CAF50;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(76,175,80,0.15);
-}
-.choice-icon {
-  font-size: 2.2rem;
-  margin-bottom: 0.8rem;
-}
-.choice-card h3 {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-1);
-}
-.choice-card p {
-  font-size: 0.82rem;
-  color: var(--text-3);
-  line-height: 1.45;
-}
-.close-modal-btn {
-  display: block;
-  margin: 1.5rem auto 0;
-  background: none;
-  border: 1.5px solid var(--border-solid);
-  color: var(--text-3);
-  padding: 0.55rem 2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: border-color 0.2s, color 0.2s;
-}
-.close-modal-btn:hover {
-  border-color: var(--text-2);
-  color: var(--text-2);
-}
-
-/* 弹窗过渡 */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.25s;
-}
-.modal-fade-enter-active .test-choice-modal,
-.modal-fade-leave-active .test-choice-modal {
-  transition: transform 0.25s cubic-bezier(.4,0,.2,1);
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; }
-.modal-fade-enter-from .test-choice-modal { transform: scale(0.92); }
-.modal-fade-leave-to .test-choice-modal { transform: scale(0.92); }
-
-@media (max-width: 480px) {
-  .choice-cards { flex-direction: column; }
 }
 
 /* ─── 睡眠时间段 ─── */

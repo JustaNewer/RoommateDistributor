@@ -28,7 +28,7 @@
 
 智能舍友分配系统是一个解决高校宿舍分配问题的综合性平台。传统的宿舍分配方式随机或基于简单规则，容易导致舍友间生活习惯冲突。本系统通过 **三层 AI 分配架构**分析用户性格特征和生活习惯，为每个房间匹配最合适的舍友组合，并自动生成兼容性分析报告。
 
-- **住户**可完善个人信息、参与性格测试、搜索并申请宿舍、查看兼容性报告
+- **住户**可完善个人信息、参与性格问卷测试、搜索并申请宿舍、查看兼容性报告
 - **管理员**可创建宿舍、审核申请、一键触发智能分配、微调床位安排
 
 ---
@@ -36,15 +36,15 @@
 ## 功能特点
 
 ### 用户与账号
-- 注册/登录（JWT 鉴权，密码 SHA256 加密）
+- 注册/登录（密码 SHA256 加密）
 - 个人信息管理（真实姓名、身高、体重、性别）
 - 睡眠作息设置（入睡/起床时间、午睡习惯）
 - 注销账号（事务级联删除全部相关数据）
 
-### 性格测试（双轨制）
+### 性格测试
 - **问卷量表测试**：9 道 Likert 1-5 量表题，生成标准化 9 维性格向量
-- **AI 对话测试**：基于 DeepSeek 的对话式问卷助手，自动提取性格标签
 - **OCEAN 确定性画像引擎**：将 9 维向量映射为 Big Five 五维模型，生成唯一确定的自然语言性格画像（相同向量必然产生完全相同的描述）
+- 测试完成后在个人资料页展示性格画像与问卷向量，支持重新测试
 
 ### 宿舍管理
 - 宿舍创建：设置名称、学校、楼层数、每层房间数、每间容量、**性别（男/女生宿舍）**
@@ -73,18 +73,17 @@
 ## 技术栈
 
 ### 前端
-- Vue.js 2（SPA，Vue Router，i18n 国际化）
+- Vue.js 3（SPA，Vue Router，vue-i18n 国际化）
 - Vanilla CSS（自定义变量 + 亮/暗主题）
 - Fetch API
 
 ### 后端
 - Node.js + Express.js（RESTful API）
 - MySQL 8（数据存储）
-- JWT（24h 有效期，无状态鉴权）
 - node-fetch（服务端请求 DeepSeek API）
 
 ### AI 与云服务
-- **DeepSeek API**：AI 对话测试、舍友分配优化、兼容性报告生成
+- **DeepSeek API**：舍友分配优化（Layer 2）、兼容性报告生成（Layer 3）
 - **硅基流动 Kolors**：AI 头像生成
 - **阿里云 OSS**：头像图片存储
 
@@ -96,7 +95,7 @@
 ┌─────────────────────────────────────────────┐
 │              前端 Vue.js SPA                 │
 │  Home / Profile / DormDetail / CreatedDorms │
-│  QuestionnaireTest / PersonalityTest / ...  │
+│  QuestionnaireTest / JoinedDorms / ...      │
 └───────────────────┬─────────────────────────┘
                     │ HTTP/REST
 ┌───────────────────▼─────────────────────────┐
@@ -129,7 +128,7 @@
 | `gender` | VARCHAR | 性别 |
 | `avatar_url` | VARCHAR | OSS 头像地址 |
 | `dorm_id` | INT FK | 当前入住宿舍 |
-| `user_tags` | TEXT | 性格画像文字（OCEAN 自然语言描述） |
+| `user_tags` | TEXT | 性格画像文字（OCEAN 自然语言描述，由问卷自动生成） |
 | `user_vector` | VARCHAR | 9 维性格向量（JSON，如 `[3,4,5,2,4,3,4,1,5]`） |
 | `sleep_time_start` / `sleep_time_end` | VARCHAR(5) | 入睡/起床时间 `HH:MM` |
 | `has_nap` | TINYINT | 是否有午睡习惯 |
@@ -184,7 +183,7 @@
 | 功能 | 说明 |
 |------|------|
 | 注册 | 用户名唯一校验，密码 SHA256 加密存储，选择角色（admin/resident） |
-| 登录 | 返回 JWT Token（24h），前端存入 localStorage |
+| 登录 | 验证用户名密码，前端存入 localStorage |
 | 修改密码 | 需验证旧密码 |
 | 注销账号 | 事务级联删除：申请 → 入住 → 房间 → 宿舍 → 用户 |
 
@@ -197,17 +196,19 @@
 - 维护真实姓名、身高、体重、性别
 - 设置**晚间睡眠时间**（入睡/起床）与**午睡习惯**（开关 + 时间段）
 - 上传头像（最大 5MB）或调用 AI 生成个性化头像
-- 展示当前**OCEAN 性格画像**文字，支持重新测试
+- 展示当前**OCEAN 性格画像**文字与问卷向量，支持重新测试
 
 ---
 
 ### 性格测试模块
 
-系统提供两种互补的性格测试方式：
+**核心文件**：`src/views/QuestionnaireTest.vue`、`src/server/routes/user.js`
 
-#### 方式一：问卷量表测试（QuestionnaireTest.vue）
+系统提供标准化的 9 题问卷测试，用户在个人资料页点击"开始测试"即可进入。
 
-9 道题目，每题 1-5 分，对应 9 个性格维度：
+#### 问卷量表测试
+
+9 道题目，每题 1-5 分（Likert 量表），对应 9 个性格维度：
 
 | # | 维度 |
 |---|------|
@@ -221,11 +222,7 @@
 | Q8 | 神经质（Neuroticism） |
 | Q9 | 责任心-整洁 |
 
-提交后系统自动生成 9 维向量，并调用 OCEAN 画像引擎生成性格描述。
-
-#### 方式二：AI 对话测试（PersonalityTest.vue）
-
-与 DeepSeek AI 进行自由对话式问卷，AI 提出生活习惯相关问题，对话结束后自动提取并保存性格标签。
+提交后系统自动生成 9 维向量，并调用 OCEAN 画像引擎生成确定性的自然语言性格画像，同时存入 `user_vector` 和 `user_tags` 字段。
 
 ---
 
@@ -260,6 +257,8 @@
     ↓
 最终性格画像文本（存入 Users.user_tags）
 ```
+
+**8 种人格原型**：学术钻研型、社交活力型、自律沉稳型、随和开朗型、安静细腻型、独立自主型、活力创新型、温和均衡型。
 
 ---
 
@@ -378,11 +377,7 @@ DB_PASSWORD=your_password
 DB_NAME=roommateallocation
 DB_PORT=3306
 
-# JWT
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES=24h
-
-# DeepSeek AI
+# DeepSeek AI（用于舍友分配优化与兼容性报告）
 DEEPSEEK_API_KEY=your_deepseek_api_key
 DEEPSEEK_API_URL=https://api.deepseek.com/v1/chat/completions
 DEEPSEEK_MODEL=deepseek-chat
@@ -399,7 +394,7 @@ OSS_BUCKET=your_bucket_name
 ```bash
 # 克隆项目
 git clone https://github.com/JustaNewer/RoommateDistributor.git
-cd roommate_allocation
+cd RoommateDistributor
 
 # 安装前端依赖
 npm install
@@ -425,9 +420,7 @@ npm run dev
 
 1. **注册**：选择 `resident` 角色，填写用户名密码
 2. **完善档案**：在 Profile 页填写身高、体重、性别、**睡眠时间**
-3. **参与性格测试**：
-   - 问卷测试（9题量表）→ 自动生成 OCEAN 性格画像
-   - 或 AI 对话测试 → 智能提取标签
+3. **参与性格测试**：在个人资料页点击"开始测试"，完成 9 题问卷后系统自动生成 OCEAN 性格画像
 4. **搜索宿舍**：首页搜索框，按名称/学校/哈希码查找
 5. **申请加入**：在宿舍详情页点击「申请加入」
 6. **等待审批**：管理员通过后，进入「我加入的宿舍」查看房间号和兼容性报告
@@ -452,8 +445,8 @@ npm run dev
 | 方法 | 路径 | 功能 |
 |------|------|------|
 | POST | `/register` | 用户注册 |
-| POST | `/login` | 用户登录，返回 JWT |
-| GET | `/verify-token` | 验证 JWT |
+| POST | `/login` | 用户登录 |
+| GET | `/verify-token` | 验证 Token |
 | POST | `/change-password` | 修改密码 |
 | POST | `/logout` | 登出 |
 | DELETE | `/delete-account/:userId` | 注销账号（级联删除） |
@@ -464,11 +457,8 @@ npm run dev
 |------|------|------|
 | GET/PUT | `/:userId/profile` | 获取/保存个人信息 |
 | GET | `/:userId/tags` | 获取性格画像 |
-| POST | `/save-tags` | 保存 AI 对话生成的标签 |
 | GET | `/:userId/vector` | 获取 9 维性格向量 |
 | POST | `/save-vector` | 保存向量并自动生成 OCEAN 画像 |
-| POST | `/chat/proxy` | DeepSeek AI 对话代理 |
-| DELETE | `/chat/history/:userId` | 清除对话历史 |
 | POST | `/regenerate-profile` | 重新生成单用户性格画像 |
 | POST | `/regenerate-all-profiles` | 批量重新生成所有用户画像 |
 

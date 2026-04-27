@@ -77,6 +77,7 @@ export default {
     dormNamePlaceholder: 'Enter dorm name',
     school: 'School',
     schoolPlaceholder: 'Enter school name',
+    dormGender: 'Dorm Gender',
     capacity: 'Capacity',
     personRoom: '-person room',
     floors: 'Floors',
@@ -99,8 +100,8 @@ export default {
     confirmNewPassword: 'Confirm New Password',
     saveChange: 'Save Changes',
     personalityTest: 'Personality Test',
-    myTags: 'My Personality Tags',
-    testDesc: 'Complete the personality quiz to help us find the best roommates for you. The test is a fun conversation to understand your personality.',
+    myTags: 'My Personality Profile',
+    testDesc: 'Complete the 9-question questionnaire and the system will generate your personalized personality profile to help us find the best roommates for you.',
     startTest: 'Start Test',
     retakeTest: 'Retake Test',
     fillAllPassword: 'Please fill in all password fields',
@@ -275,26 +276,6 @@ export default {
     q7: 'When I have a disagreement with a roommate, I will communicate and try to resolve it.',
     q8: 'In daily life, I often feel anxious or experience mood swings.',
     q9: 'I keep my room and common areas tidy and clean them regularly.',
-  },
-
-  // Test choice
-  testChoice: {
-    title: 'Choose Test Type',
-    aiChat: 'AI Chat Test',
-    aiChatDesc: 'Discover your personality through a casual AI conversation',
-    questionnaire: 'Questionnaire',
-    questionnaireDesc: '9 standardized questions to quickly generate your personality vector',
-  },
-
-  // Personality test
-  personalityTest: {
-    title: 'Personality Test',
-    back: '← Back',
-    inputPlaceholder: 'Type a message...',
-    send: 'Send',
-    sending: 'Sending',
-    tagsDetected: 'Tags detected and saved',
-    testComplete: 'Test complete! Your personality tags have been saved.',
   },
 
   // Dorm detail

@@ -77,6 +77,7 @@ export default {
     dormNamePlaceholder: '请输入宿舍名称',
     school: '所属学校',
     schoolPlaceholder: '请输入学校名称',
+    dormGender: '宿舍性别',
     capacity: '宿舍容量',
     personRoom: '人间',
     floors: '楼层数',
@@ -99,8 +100,8 @@ export default {
     confirmNewPassword: '确认新密码',
     saveChange: '确认修改',
     personalityTest: '性格爱好测试',
-    myTags: '我的性格标签',
-    testDesc: '完成性格测试问卷，帮助我们更好地为您匹配室友。测试采用对话形式，轻松有趣地了解您的性格特征。',
+    myTags: '我的性格画像',
+    testDesc: '完成 9 道标准化问卷，系统将自动生成专属于你的性格画像，帮助我们更好地为你匹配室友。',
     startTest: '开始测试',
     retakeTest: '重新测试',
     fillAllPassword: '请填写所有密码字段',
@@ -275,26 +276,6 @@ export default {
     q7: '当我与室友产生分歧时，我会主动沟通并尝试解决问题。',
     q8: '在日常生活中，我经常感到焦虑或情绪波动较大。',
     q9: '我习惯保持房间和公共区域的整洁，并会定期整理或打扫。',
-  },
-
-  // 测试方式选择
-  testChoice: {
-    title: '选择测试方式',
-    aiChat: 'AI 对话测试',
-    aiChatDesc: '通过与AI对话，轻松了解您的性格特征',
-    questionnaire: '问卷测试',
-    questionnaireDesc: '9道标准化题目，快速生成性格向量',
-  },
-
-  // 性格测试
-  personalityTest: {
-    title: '性格测试',
-    back: '← 返回',
-    inputPlaceholder: '输入消息...',
-    send: '发送',
-    sending: '发送中',
-    tagsDetected: '标签已检测并保存',
-    testComplete: '测试完成！您的性格标签已保存。',
   },
 
   // 宿舍详情

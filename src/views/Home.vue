@@ -93,7 +93,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>{{ $t('home.dormGender') || '宿舍类型' }}</label>
+                  <label>{{ $t('home.dormGender') || '宿舍性别' }}</label>
                   <div class="radio-group">
                     <label class="radio-label" v-for="g in genderOptions" :key="g.value">
                       <input 
