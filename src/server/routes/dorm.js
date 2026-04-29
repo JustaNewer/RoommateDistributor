@@ -1506,14 +1506,22 @@ ${JSON.stringify(availableRooms, null, 2)}
 `;
 
         // 发送请求到DeepSeek API
-        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        const deepseekApiUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/chat/completions';
+        const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+        const deepseekModel = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+
+        if (!deepseekApiKey) {
+            throw new Error('未配置 DEEPSEEK_API_KEY 环境变量，请在 src/server/.env 中设置');
+        }
+
+        const response = await fetch(deepseekApiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer sk-d73222281bff4d9e88795be48390d903'
+                'Authorization': `Bearer ${deepseekApiKey}`
             },
             body: JSON.stringify({
-                model: "deepseek-chat",
+                model: deepseekModel,
                 messages: [
                     {
                         role: "user",

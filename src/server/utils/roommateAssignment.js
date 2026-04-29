@@ -10,8 +10,12 @@ const fetch = require('node-fetch');
 const { vectorToOCEAN } = require('./personalityProfile');
 
 const DEEPSEEK_API_URL = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/v1/chat/completions';
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-d73222281bff4d9e88795be48390d903';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+
+if (!DEEPSEEK_API_KEY) {
+    console.warn('[roommateAssignment] 未检测到 DEEPSEEK_API_KEY 环境变量，请在 src/server/.env 中配置');
+}
 
 // ════════════════════════════════════════════════
 //  工具函数

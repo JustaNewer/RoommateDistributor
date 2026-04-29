@@ -120,8 +120,15 @@ router.post('/generate', async (req, res) => {
         const enhancedPrompt = `${prompt}, high quality portrait, professional avatar, clean background, centered composition`;
 
         // 调用硅基流动API生成图片（完全按照官方文档示例）
-        const apiKey = 'sk-kehflmxjdubzayussxtdvqozvmpfdehejpiwpynsbqgtvhbr';
-        const response = await fetch('https://api.siliconflow.cn/v1/images/generations', {
+        const apiKey = process.env.SILICONFLOW_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({
+                success: false,
+                message: '服务端未配置 SILICONFLOW_API_KEY，请在 src/server/.env 中设置后重启服务'
+            });
+        }
+        const apiUrl = process.env.SILICONFLOW_API_URL || 'https://api.siliconflow.cn/v1/images/generations';
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
@@ -165,7 +172,7 @@ router.post('/generate', async (req, res) => {
         // 上传到阿里云OSS
         const fileName = `avatars/ai_${userId}_${Date.now()}.png`;
         console.log('开始上传到OSS，文件名:', fileName);
-        
+
         const result = await client.put(fileName, imageBuffer);
         console.log('OSS上传成功，URL:', result.url);
 
